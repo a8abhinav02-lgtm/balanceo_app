@@ -1,54 +1,53 @@
 # Guía de Operación - Balanceo App
 
-Esta aplicación permite realizar el balanceo de rotores utilizando el **Método de Coeficientes de Influencia**, soportando configuraciones de 1 y 2 planos.
+Esta aplicación permite realizar el balanceo de rotores utilizando el **Método de Coeficientes de Influencia**, soportando configuraciones de 1 y 2 planos con un alto grado de precisión técnica.
 
 ---
 
 ## Flujo de Trabajo
 
 ### 1. Configuración del Rotor
-Antes de iniciar, defina las características físicas del equipo:
-- **Nombre del Activo:** Identificador único para guardar el historial.
-- **Sentido de Giro:** Crucial para la interpretación de ángulos en el gráfico polar.
+Defina las características físicas antes de medir:
+- **Nombre del Activo:** Identificador para persistencia en el historial.
+- **Sentido de Giro:** Vital para la visualización. La app asume la convención de **Contra-Rotación** para los ángulos de fase.
 - **Tipo de Rotor:** 
-  - *Continuo:* Para balanceo basado estrictamente en grados.
-  - *Discreto:* Si el rotor tiene álabes numerados. Permite configurar la posición del álabe #1 y el sentido de numeración.
-- **Sensores:** Ubicación angular de los sensores X e Y.
+  - *Continuo:* Balanceo basado en grados ($0^\circ$ a $360^\circ$).
+  - *Discreto:* Para rotores con álabes. Permite configurar el ángulo del Álabe #1 y si la numeración es Horaria o Antihoraria.
+- **Sensores:** Ubicación angular física de los sensores X e Y.
 
-### 2. Medición Inicial
-Mida la vibración del equipo a velocidad nominal sin pesos de prueba. 
-- Ingrese Amplitud (μm) y Fase (°) para cada sensor.
+### 2. Medición Inicial (Diagnóstico)
+Mida la vibración base a velocidad nominal. Se capturan datos de ambos sensores (X/Y) para tener un panorama completo del desbalance inicial.
 
 ### 3. Prueba de Coeficientes
-Instale un peso de prueba conocido en la posición indicada por la aplicación.
-- **1 Plano:** Requiere una sola corrida con peso de prueba.
-- **2 Planos:** Requiere dos corridas (una para cada plano) para calcular la matriz de influencia.
+Instale un peso de prueba ($M_t$) y mida la nueva vibración resultante ($V_1$).
+- **Dualidad:** Incluso en modo de 1 plano, la app solicita ambos sensores para monitorear el acoplamiento entre planos.
 
-### 4. Resultados y Corrección
-La aplicación calculará la masa exacta y el ángulo de colocación.
-- **Masa Correctora:** El peso exacto (en gramos) que debe instalarse.
-- **Ángulo de Colocación:** La posición angular donde debe fijarse la masa.
-- **Sugerencia de Álabe:** Indica el número de álabe más cercano al ángulo calculado.
-
----
-
-## Interpretación del Diagrama Polar
-
-El diagrama polar es la herramienta visual clave para validar el proceso:
-
-- **Vectores de Vibración:** Los vectores **V1 (Sensor 1/X)** y **V2 (Sensor 2/Y)** se muestran de forma independiente. **No son una resultante**. Cada uno representa la vibración medida en su respectivo plano de apoyo.
-- **Sentido de Giro (GIRO):** Una flecha naranja externa indica hacia dónde gira el rotor. Los ángulos en el gráfico se interpretan siguiendo esta convención física.
-- **Keyphasor (KP):** La línea negra sólida indica la referencia de fase (0°).
-- **Indicadores de Sensores:** 
-  - **Círculo (X):** Ubicación física del Sensor 1.
-  - **Cuadrado (Y):** Ubicación física del Sensor 2.
-- **Leyenda:** Situada en la esquina superior derecha, permite identificar rápidamente cada color de vector sin saturar el gráfico interno.
+### 4. Resultados y Evolución Vectorial
+La app calcula la **Masa Correctora ($M_c$)** exacta. Los resultados se presentan en un carrusel comparativo:
+- **Estado Inicial:** Solo la vibración diagnóstica ($V_0$).
+- **Efecto de Prueba:** Muestra $V_0$, la masa de prueba y el vector resultante $V_1$.
+- **Masa Correctora:** Muestra la solución final recomendada ($M_c$) sobre el estado inicial.
 
 ---
 
-## Post-Balanceo e Iteraciones
+## Convenciones y Diagrama Polar
 
-### Verificación
-Después de instalar las masas correctoras calculadas, realice una nueva corrida.
-- Si la vibración residual es aceptable, el proceso ha terminado.
-- Si aún es alta, use la opción **Nueva Iteración**. La aplicación usará los coeficientes ya calculados para refinar la masa basándose en la nueva lectura, ahorrando tiempo de corrida.
+### Regla de Ángulos (Contra-Giro)
+Siguiendo los estándares industriales (ISO/Bently Nevada), los ángulos se grafican en **sentido opuesto al giro del rotor**.
+- Si el rotor gira **Horario**, los grados se cuentan **Antihorario**.
+- **¿Por qué?** La fase es un retraso (*lag*). El punto pesado se encuentra "atrás" de la marca de referencia respecto al giro.
+
+### Elementos del Gráfico
+- **Flecha de GIRO:** Indica el sentido de rotación configurado.
+- **Keyphasor (KP):** Referencia de fase ($0^\circ$).
+- **Vectores de Vibración:** $V1$ (Sensor X), $V2$ (Sensor Y).
+- **Masas:** $M_t$ (Prueba), $M_c$ (Correctora).
+- **Sugerencia de Álabe:** Cálculo exacto basado en la distancia angular más corta a la posición física de los álabes configurados.
+
+---
+
+## Refinamiento (Iteraciones)
+Si tras instalar la masa correctora la vibración residual no es satisfactoria:
+1. Use **Nueva Iteración**.
+2. Ingrese la nueva vibración medida.
+3. La app recalculará una corrección adicional usando los coeficientes de influencia ya obtenidos, optimizando el tiempo de campo.
