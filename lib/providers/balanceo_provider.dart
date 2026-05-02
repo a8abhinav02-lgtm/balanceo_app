@@ -11,6 +11,15 @@ class BalanceoProvider extends ChangeNotifier {
   Complejo? v0_2;
   Complejo? coeficiente1;
   List<List<Complejo>>? matrizCoeficientes;
+  
+  // Datos de prueba para gráficos evolutivos
+  Complejo? mt1_temp;
+  Complejo? v1_1_temp;
+  Complejo? v1_2_temp;
+  Complejo? mt2_temp;
+  Complejo? v2_1_temp;
+  Complejo? v2_2_temp;
+
   List<HistorialItem> historial = [];
   int numPlanos = 1;
   List<String> listaActivos = [];
@@ -116,6 +125,8 @@ class BalanceoProvider extends ChangeNotifier {
     v0_2 = null;
     coeficiente1 = null;
     matrizCoeficientes = null;
+    mt1_temp = null; v1_1_temp = null; v1_2_temp = null;
+    mt2_temp = null; v2_1_temp = null; v2_2_temp = null;
     // El historial no se borra, se mantiene por activo
     saveToDisk();
   }
@@ -127,10 +138,17 @@ class BalanceoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void calcularCoeficientes1Plano(Complejo pesoPrueba, Complejo v1) {
+  void calcularCoeficientes1Plano(Complejo pesoPrueba, Complejo v1, [Complejo? v2]) {
     if (v0_1 == null) return;
+    
+    // Guardar para gráficos
+    mt1_temp = pesoPrueba;
+    v1_1_temp = v1;
+    v1_2_temp = v2;
+    
     Complejo deltaV = v1 - v0_1!;
     coeficiente1 = deltaV / pesoPrueba;
+    
     pasoActual = 3;
     notifyListeners();
   }
@@ -141,6 +159,10 @@ class BalanceoProvider extends ChangeNotifier {
       Complejo v2_1, Complejo v2_2,
       ) {
     if (v0_1 == null || v0_2 == null) return;
+
+    // Guardar para gráficos
+    mt1_temp = mt1; v1_1_temp = v1_1; v1_2_temp = v1_2;
+    mt2_temp = mt2; v2_1_temp = v2_1; v2_2_temp = v2_2;
 
     Complejo deltaV1_1 = v1_1 - v0_1!;
     Complejo deltaV1_2 = v1_2 - v0_2!;
@@ -222,10 +244,32 @@ class BalanceoProvider extends ChangeNotifier {
 
   int? sugerirAlabe(double anguloMasa) {
     if (config?.tipo != TipoRotor.discreto || config!.numAlabes == 0) return null;
+    
     double paso = 360 / config!.numAlabes;
-    double anguloAjustado = ajustarAngulo(anguloMasa);
-    int indice = (anguloAjustado / paso).round() % config!.numAlabes;
-    if (indice == 0) indice = config!.numAlabes;
-    return indice;
+    double ref = config!.anguloReferenciaAlabe1;
+    bool numHoraria = config!.numeracionHoraria;
+    
+    int alabeCercano = 1;
+    double minimaDiferencia = double.infinity;
+    
+    for (int i = 1; i <= config!.numAlabes; i++) {
+      double anguloAlabe = ref + (numHoraria ? -(i - 1) * paso : (i - 1) * paso);
+      
+      double angMasaNorm = anguloMasa % 360;
+      if (angMasaNorm < 0) angMasaNorm += 360;
+      
+      double angAlabeNorm = anguloAlabe % 360;
+      if (angAlabeNorm < 0) angAlabeNorm += 360;
+      
+      double diff = (angMasaNorm - angAlabeNorm).abs();
+      if (diff > 180) diff = 360 - diff;
+      
+      if (diff < minimaDiferencia) {
+        minimaDiferencia = diff;
+        alabeCercano = i;
+      }
+    }
+    return alabeCercano;
   }
+
 }

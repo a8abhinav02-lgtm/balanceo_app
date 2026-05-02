@@ -18,6 +18,8 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
   final _mtFaseController = TextEditingController();
   final _v1AmpController = TextEditingController();
   final _v1FaseController = TextEditingController();
+  final _v2AmpController = TextEditingController(); // Sensor 2 en 1 plano
+  final _v2FaseController = TextEditingController(); // Sensor 2 en 1 plano
 
   // Para 2 planos
   final _mt1ModController = TextEditingController();
@@ -41,6 +43,8 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
     _mtFaseController.dispose();
     _v1AmpController.dispose();
     _v1FaseController.dispose();
+    _v2AmpController.dispose();
+    _v2FaseController.dispose();
     _mt1ModController.dispose();
     _mt1FaseController.dispose();
     _v1_1AmpController.dispose();
@@ -73,15 +77,25 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             if (!es2Planos) ...[
+              const Text('PESO DE PRUEBA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+              const SizedBox(height: 12),
               _buildCampo('Masa de prueba (g)', _mtModController),
               const SizedBox(height: 12),
               _buildCampo('Ángulo de colocación (°)', _mtFaseController),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
+              
               const Text('Medición Sensor 1 (X):', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               _buildCampo('Amplitud (μm)', _v1AmpController),
               const SizedBox(height: 12),
               _buildCampo('Fase (°)', _v1FaseController),
+              const SizedBox(height: 20),
+
+              const Text('Medición Sensor 2 (Y):', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              _buildCampo('Amplitud (μm)', _v2AmpController),
+              const SizedBox(height: 12),
+              _buildCampo('Fase (°)', _v2FaseController),
             ] else ...[
               if (_paso == 1) ...[
                 const Text('PESO DE PRUEBA EN PLANO 1', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
@@ -152,7 +166,10 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
                       if (!es2Planos) {
                         final mt = Complejo.desdePolar(double.parse(_mtModController.text), double.parse(_mtFaseController.text));
                         final v1 = Complejo.desdePolar(double.parse(_v1AmpController.text), double.parse(_v1FaseController.text));
-                        provider.calcularCoeficientes1Plano(mt, v1);
+                        final v2 = Complejo.desdePolar(double.parse(_v2AmpController.text), double.parse(_v2FaseController.text));
+                        
+                        // Enviamos ambas mediciones al provider
+                        provider.calcularCoeficientes1Plano(mt, v1, v2);
                         Navigator.pushNamed(context, '/resultados');
                       } else {
                         if (_paso == 1) {

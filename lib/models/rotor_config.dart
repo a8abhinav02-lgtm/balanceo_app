@@ -12,6 +12,10 @@ class RotorConfig {
   int numPlanos;
   double limiteVibracion;
 
+  // Nuevos campos para visualización avanzada
+  double anguloReferenciaAlabe1;
+  bool numeracionHoraria;
+
   RotorConfig({
     required this.nombreActivo,
     this.sentido = SentidoGiro.antihorario,
@@ -22,6 +26,8 @@ class RotorConfig {
     this.sensorYAngulo = 90,
     this.numPlanos = 1,
     this.limiteVibracion = 50,
+    this.anguloReferenciaAlabe1 = 0,
+    this.numeracionHoraria = false,
   });
 
   RotorConfig copyWith({
@@ -34,6 +40,8 @@ class RotorConfig {
     double? sensorYAngulo,
     int? numPlanos,
     double? limiteVibracion,
+    double? anguloReferenciaAlabe1,
+    bool? numeracionHoraria,
   }) {
     return RotorConfig(
       nombreActivo: nombreActivo ?? this.nombreActivo,
@@ -45,6 +53,8 @@ class RotorConfig {
       sensorYAngulo: sensorYAngulo ?? this.sensorYAngulo,
       numPlanos: numPlanos ?? this.numPlanos,
       limiteVibracion: limiteVibracion ?? this.limiteVibracion,
+      anguloReferenciaAlabe1: anguloReferenciaAlabe1 ?? this.anguloReferenciaAlabe1,
+      numeracionHoraria: numeracionHoraria ?? this.numeracionHoraria,
     );
   }
 
@@ -61,17 +71,21 @@ class RotorConfig {
     'sensorYAngulo': sensorYAngulo,
     'numPlanos': numPlanos,
     'limiteVibracion': limiteVibracion,
+    'anguloReferenciaAlabe1': anguloReferenciaAlabe1,
+    'numeracionHoraria': numeracionHoraria,
   };
 
   factory RotorConfig.fromJson(Map<String, dynamic> json) => RotorConfig(
     nombreActivo: json['nombreActivo'] as String? ?? 'Desconocido',
-    sentido: SentidoGiro.values[json['sentido'] as int],
-    tipo: TipoRotor.values[json['tipo'] as int],
-    numAlabes: json['numAlabes'] as int,
-    keyphasorAngulo: (json['keyphasorAngulo'] as num).toDouble(),
-    sensorXAngulo: (json['sensorXAngulo'] as num).toDouble(),
-    sensorYAngulo: (json['sensorYAngulo'] as num).toDouble(),
-    numPlanos: json['numPlanos'] as int,
-    limiteVibracion: (json['limiteVibracion'] as num).toDouble(),
+    sentido: SentidoGiro.values[json['sentido'] as int? ?? 1],
+    tipo: TipoRotor.values[json['tipo'] as int? ?? 0],
+    numAlabes: json['numAlabes'] as int? ?? 0,
+    keyphasorAngulo: (json['keyphasorAngulo'] as num? ?? 0).toDouble(),
+    sensorXAngulo: (json['sensorXAngulo'] as num? ?? 0).toDouble(),
+    sensorYAngulo: (json['sensorYAngulo'] as num? ?? 90).toDouble(),
+    numPlanos: json['numPlanos'] as int? ?? 1,
+    limiteVibracion: (json['limiteVibracion'] as num? ?? 50).toDouble(),
+    anguloReferenciaAlabe1: (json['anguloReferenciaAlabe1'] as num? ?? 0).toDouble(),
+    numeracionHoraria: json['numeracionHoraria'] as bool? ?? false,
   );
 }

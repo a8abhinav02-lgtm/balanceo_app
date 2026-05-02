@@ -43,7 +43,6 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<BalanceoProvider>(context);
-    final es2Planos = provider.config?.numPlanos == 2;
 
     return Scaffold(
       appBar: AppBar(
@@ -62,7 +61,7 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
             ),
             const SizedBox(height: 24),
 
-            const Text('Sensor 1 (X)', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Sensor 1 (X)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
             const SizedBox(height: 8),
             TextFormField(
               controller: _amp1Controller,
@@ -77,26 +76,24 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
               decoration: const InputDecoration(labelText: 'Fase (°)', border: OutlineInputBorder()),
               validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
-            if (es2Planos) ...[
-              const Text('Sensor 2 (Y)', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _amp2Controller,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Amplitud (μm)', border: OutlineInputBorder()),
-                validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _fase2Controller,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Fase (°)', border: OutlineInputBorder()),
-                validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
-              ),
-              const SizedBox(height: 24),
-            ],
+            const Text('Sensor 2 (Y)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _amp2Controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'Amplitud (μm)', border: OutlineInputBorder()),
+              validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _fase2Controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'Fase (°)', border: OutlineInputBorder()),
+              validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
+            ),
+            const SizedBox(height: 100),
           ],
         ),
       ),
@@ -126,14 +123,11 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
                       final fase1 = double.parse(_fase1Controller.text);
                       Complejo s1 = Complejo.desdePolar(amp1, fase1);
 
-                      if (es2Planos) {
-                        final amp2 = double.parse(_amp2Controller.text);
-                        final fase2 = double.parse(_fase2Controller.text);
-                        Complejo s2 = Complejo.desdePolar(amp2, fase2);
-                        provider.setMedicionInicial(s1, s2);
-                      } else {
-                        provider.setMedicionInicial(s1);
-                      }
+                      final amp2 = double.parse(_amp2Controller.text);
+                      final fase2 = double.parse(_fase2Controller.text);
+                      Complejo s2 = Complejo.desdePolar(amp2, fase2);
+                      
+                      provider.setMedicionInicial(s1, s2);
                       Navigator.pushNamed(context, '/prueba');
                     }
                   },

@@ -1,59 +1,54 @@
-# Guía de Operación: Aplicación de Balanceo por Coeficientes
+# Guía de Operación - Balanceo App
 
-Esta aplicación está diseñada para facilitar el proceso de balanceo de rotores rígidos utilizando el **Método de Coeficientes de Influencia**. Permite realizar balanceos tanto en **un solo plano** (estático) como en **dos planos** (dinámico).
-
-## Conceptos Fundamentales
-
-El método de coeficientes de influencia se basa en la relación lineal entre la masa de desbalance y la vibración medida. La aplicación calcula cuánto cambia la vibración por cada gramo de masa añadido (el coeficiente) para luego determinar la masa exacta necesaria para anular la vibración original.
+Esta aplicación permite realizar el balanceo de rotores utilizando el **Método de Coeficientes de Influencia**, soportando configuraciones de 1 y 2 planos.
 
 ---
 
 ## Flujo de Trabajo
 
-La aplicación sigue un proceso secuencial dividido en cuatro etapas principales:
-
 ### 1. Configuración del Rotor
-En la pantalla inicial, se definen los parámetros físicos del equipo:
-- **Sentido de Giro:** Crucial para la interpretación de los ángulos (Horario o Antihorario).
+Antes de iniciar, defina las características físicas del equipo:
+- **Nombre del Activo:** Identificador único para guardar el historial.
+- **Sentido de Giro:** Crucial para la interpretación de ángulos en el gráfico polar.
 - **Tipo de Rotor:** 
-    - *Continuo:* Para colocar masas en cualquier ángulo.
-    - *Discreto:* Si el rotor tiene álabes o posiciones fijas (la app sugerirá en qué número de álabe colocar la masa).
-- **Ángulos de Sensores:** Posición angular de los sensores X e Y respecto a la referencia (Keyphasor).
-- **Planos de Corrección:** Elegir entre 1 o 2 planos según el tipo de rotor y la severidad del desbalance dinámico.
+  - *Continuo:* Para balanceo basado estrictamente en grados.
+  - *Discreto:* Si el rotor tiene álabes numerados. Permite configurar la posición del álabe #1 y el sentido de numeración.
+- **Sensores:** Ubicación angular de los sensores X e Y.
 
-### 2. Medición Inicial (V0)
-Se debe hacer girar el rotor a su velocidad nominal **sin ninguna masa de prueba**.
-- Se ingresa la **Amplitud** (generalmente en μm o mils) y la **Fase** (en grados) medida por el analizador de vibraciones.
-- Si es balanceo de 2 planos, se requieren las mediciones de ambos sensores simultáneamente.
+### 2. Medición Inicial
+Mida la vibración del equipo a velocidad nominal sin pesos de prueba. 
+- Ingrese Amplitud (μm) y Fase (°) para cada sensor.
 
-### 3. Prueba de Coeficientes (Pesos de Prueba)
-En esta etapa se determina la respuesta del sistema ante una masa conocida:
-- **Plano 1:** Se coloca una masa de prueba (MT1) en un ángulo conocido y se mide la nueva vibración (V1).
-- **Plano 2 (solo en 2 planos):** Se retira la masa del Plano 1, se coloca una masa de prueba en el Plano 2 (MT2) y se mide la respuesta (V2).
-- *Nota:* La aplicación utiliza estos datos para calcular la matriz de influencia.
+### 3. Prueba de Coeficientes
+Instale un peso de prueba conocido en la posición indicada por la aplicación.
+- **1 Plano:** Requiere una sola corrida con peso de prueba.
+- **2 Planos:** Requiere dos corridas (una para cada plano) para calcular la matriz de influencia.
 
 ### 4. Resultados y Corrección
-Una vez procesados los datos, la aplicación muestra:
+La aplicación calculará la masa exacta y el ángulo de colocación.
 - **Masa Correctora:** El peso exacto (en gramos) que debe instalarse.
 - **Ángulo de Colocación:** La posición angular donde debe fijarse la masa.
-- **Diagrama Polar:** Una representación visual de los vectores de vibración y las masas calculadas.
-- **Sugerencia de Álabe:** Si el rotor es discreto, indica el número de álabe más cercano al ángulo calculado.
+- **Sugerencia de Álabe:** Indica el número de álabe más cercano al ángulo calculado.
+
+---
+
+## Interpretación del Diagrama Polar
+
+El diagrama polar es la herramienta visual clave para validar el proceso:
+
+- **Vectores de Vibración:** Los vectores **V1 (Sensor 1/X)** y **V2 (Sensor 2/Y)** se muestran de forma independiente. **No son una resultante**. Cada uno representa la vibración medida en su respectivo plano de apoyo.
+- **Sentido de Giro (GIRO):** Una flecha naranja externa indica hacia dónde gira el rotor. Los ángulos en el gráfico se interpretan siguiendo esta convención física.
+- **Keyphasor (KP):** La línea negra sólida indica la referencia de fase (0°).
+- **Indicadores de Sensores:** 
+  - **Círculo (X):** Ubicación física del Sensor 1.
+  - **Cuadrado (Y):** Ubicación física del Sensor 2.
+- **Leyenda:** Situada en la esquina superior derecha, permite identificar rápidamente cada color de vector sin saturar el gráfico interno.
 
 ---
 
 ## Post-Balanceo e Iteraciones
 
 ### Verificación
-Después de instalar las masas correctoras calculadas, se debe realizar una nueva corrida de verificación.
-- Si la vibración residual es aceptable (menor al límite configurado), el proceso ha terminado.
-- Si aún es alta, se puede realizar una **Siguiente Iteración** dentro de la pantalla de resultados. La aplicación usará los coeficientes ya calculados para ajustar la masa basándose en la nueva vibración medida.
-
-### Historial
-La aplicación permite guardar los resultados de cada iteración para documentar la evolución del balanceo y generar un reporte final.
-
----
-
-## Consejos para un Balanceo Exitoso
-1. **Consistencia:** Asegúrese de que la velocidad de rotación sea la misma en todas las mediciones.
-2. **Referencia de Ángulo:** Mantenga siempre la misma convención para medir los ángulos (a favor o en contra del giro) según lo configurado.
-3. **Masa de Prueba:** Use una masa que produzca un cambio significativo en la vibración (al menos un 30% en amplitud o 30° en fase) para obtener coeficientes precisos.
+Después de instalar las masas correctoras calculadas, realice una nueva corrida.
+- Si la vibración residual es aceptable, el proceso ha terminado.
+- Si aún es alta, use la opción **Nueva Iteración**. La aplicación usará los coeficientes ya calculados para refinar la masa basándose en la nueva lectura, ahorrando tiempo de corrida.

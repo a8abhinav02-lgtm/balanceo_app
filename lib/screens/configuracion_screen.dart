@@ -21,6 +21,10 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   late double _sensorY;
   late int _numPlanos;
   late double _limiteVibracion;
+  
+  // Nuevos campos
+  late double _anguloAlabe1;
+  late bool _numeracionHoraria;
 
   @override
   void initState() {
@@ -35,6 +39,8 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     _sensorY = provider.config?.sensorYAngulo ?? 90;
     _numPlanos = provider.config?.numPlanos ?? 1;
     _limiteVibracion = provider.config?.limiteVibracion ?? 50;
+    _anguloAlabe1 = provider.config?.anguloReferenciaAlabe1 ?? 0;
+    _numeracionHoraria = provider.config?.numeracionHoraria ?? false;
   }
 
   @override
@@ -57,6 +63,8 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
           _sensorY = provider.config!.sensorYAngulo;
           _numPlanos = provider.config!.numPlanos;
           _limiteVibracion = provider.config!.limiteVibracion;
+          _anguloAlabe1 = provider.config!.anguloReferenciaAlabe1;
+          _numeracionHoraria = provider.config!.numeracionHoraria;
         });
       }
     });
@@ -172,7 +180,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
             ),
             const SizedBox(height: 16),
 
-            if (_tipo == TipoRotor.discreto)
+            if (_tipo == TipoRotor.discreto) ...[
               TextFormField(
                 key: ValueKey('numAlabes_$_numAlabes'),
                 initialValue: _numAlabes.toString(),
@@ -181,12 +189,32 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                 onChanged: (val) => _numAlabes = int.tryParse(val) ?? 0,
                 validator: (v) => _tipo == TipoRotor.discreto && (int.tryParse(v ?? '0') ?? 0) <= 0 ? 'Requerido' : null,
               ),
-            if (_tipo == TipoRotor.discreto) const SizedBox(height: 16),
+              const SizedBox(height: 16),
+              TextFormField(
+                key: ValueKey('anguloAlabe1_$_anguloAlabe1'),
+                initialValue: _anguloAlabe1.toString(),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Ángulo del Álabe #1 (°)', border: OutlineInputBorder(), helperText: 'Referencia visual en el gráfico'),
+                onChanged: (val) => _anguloAlabe1 = double.tryParse(val) ?? 0,
+              ),
+              const SizedBox(height: 16),
+              const Text('Sentido de numeración de álabes', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(value: false, label: Text('Antihorario')),
+                  ButtonSegment(value: true, label: Text('Horario')),
+                ],
+                selected: {_numeracionHoraria},
+                onSelectionChanged: (set) => setState(() => _numeracionHoraria = set.first),
+              ),
+              const SizedBox(height: 16),
+            ],
 
             TextFormField(
               key: ValueKey('keyphasor_$_keyphasor'),
               initialValue: _keyphasor.toString(),
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'Ángulo keyphasor (°)', border: OutlineInputBorder()),
               onChanged: (val) => _keyphasor = double.tryParse(val) ?? 0,
             ),
@@ -198,7 +226,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                   child: TextFormField(
                     key: ValueKey('sensorX_$_sensorX'),
                     initialValue: _sensorX.toString(),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Sensor X (°)', border: OutlineInputBorder()),
                     onChanged: (val) => _sensorX = double.tryParse(val) ?? 0,
                   ),
@@ -208,7 +236,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                   child: TextFormField(
                     key: ValueKey('sensorY_$_sensorY'),
                     initialValue: _sensorY.toString(),
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Sensor Y (°)', border: OutlineInputBorder()),
                     onChanged: (val) => _sensorY = double.tryParse(val) ?? 0,
                   ),
@@ -232,7 +260,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
             TextFormField(
               key: ValueKey('limite_$_limiteVibracion'),
               initialValue: _limiteVibracion.toString(),
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'Límite Objetivo (μm)', border: OutlineInputBorder()),
               onChanged: (val) => _limiteVibracion = double.tryParse(val) ?? 50,
             ),
@@ -260,6 +288,8 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                   sensorYAngulo: _sensorY,
                   numPlanos: _numPlanos,
                   limiteVibracion: _limiteVibracion,
+                  anguloReferenciaAlabe1: _anguloAlabe1,
+                  numeracionHoraria: _numeracionHoraria,
                 );
                 provider.setConfig(config).then((_) {
                   if (!context.mounted) return;
