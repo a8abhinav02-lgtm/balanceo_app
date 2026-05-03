@@ -11,7 +11,7 @@ Defina las características físicas antes de medir:
 - **Nombre del Activo:** Identificador para persistencia en el historial.
 - **Sentido de Giro:** Vital para la visualización. La app asume la convención de **Contra-Rotación** para los ángulos de fase.
 - **Tipo de Rotor:** 
-  - *Continuo:* Balanceo basado en grados ($0^\circ$ a $360^\circ$).
+  - *Continuo:* Balanceo basado en grados (0° a 360°).
   - *Discreto:* Para rotores con álabes. Permite configurar el ángulo del Álabe #1 y si la numeración es Horaria o Antihoraria.
 - **Sensores:** Ubicación angular física de los sensores X e Y.
 
@@ -19,14 +19,14 @@ Defina las características físicas antes de medir:
 Mida la vibración base a velocidad nominal. Se capturan datos de ambos sensores (X/Y) para tener un panorama completo del desbalance inicial.
 
 ### 3. Prueba de Coeficientes
-Instale un peso de prueba ($M_t$) y mida la nueva vibración resultante ($V_1$).
+Instale un peso de prueba (`M1`) y mida la nueva vibración resultante (`V1` y `V2`).
 - **Dualidad:** Incluso en modo de 1 plano, la app solicita ambos sensores para monitorear el acoplamiento entre planos.
 
 ### 4. Resultados y Evolución Vectorial
-La app calcula la **Masa Correctora ($M_c$)** exacta. Los resultados se presentan en un carrusel comparativo:
-- **Estado Inicial:** Solo la vibración diagnóstica ($V_0$).
-- **Efecto de Prueba:** Muestra $V_0$, la masa de prueba y el vector resultante $V_1$.
-- **Masa Correctora:** Muestra la solución final recomendada ($M_c$) sobre el estado inicial.
+La app calcula la **Masa Correctora** exacta. Los resultados se presentan en un carrusel comparativo:
+- **Estado Inicial:** Solo la vibración diagnóstica pura.
+- **Efecto de Prueba:** Muestra la vibración base, la masa de prueba y la vibración resultante tras colocar el peso.
+- **Masas Correctoras:** Muestra la solución final recomendada sobre el estado inicial.
 
 ---
 
@@ -35,14 +35,22 @@ La app calcula la **Masa Correctora ($M_c$)** exacta. Los resultados se presenta
 ### Regla de Ángulos (Contra-Giro)
 Siguiendo los estándares industriales (ISO/Bently Nevada), los ángulos se grafican en **sentido opuesto al giro del rotor**.
 - Si el rotor gira **Horario**, los grados se cuentan **Antihorario**.
-- **¿Por qué?** La fase es un retraso (*lag*). El punto pesado se encuentra "atrás" de la marca de referencia respecto al giro.
+- **¿Por qué?** La fase representa un retraso (*lag*). El punto pesado se encuentra físicamente "atrás" de la marca de referencia respecto al giro de la máquina.
 
-### Elementos del Gráfico
-- **Flecha de GIRO:** Indica el sentido de rotación configurado.
-- **Keyphasor (KP):** Referencia de fase ($0^\circ$).
-- **Vectores de Vibración:** $V1$ (Sensor X), $V2$ (Sensor Y).
-- **Masas:** $M_t$ (Prueba), $M_c$ (Correctora).
-- **Sugerencia de Álabe:** Cálculo exacto basado en la distancia angular más corta a la posición física de los álabes configurados.
+### Elementos Gráficos (Simbología)
+El diagrama polar utiliza símbolos exactos para garantizar una interpretación visual directa de los datos en campo:
+
+- **Flecha `GIRO` (Naranja):** Indica el sentido de rotación físico configurado por el usuario.
+- **Línea `KP` (Negra):** El Keyphasor. Es la marca óptica de referencia (fase = 0°).
+- **Indicadores de Sensores:** 
+  - **Círculo `(X)`:** Ubicación angular física del Sensor 1.
+  - **Cuadrado `[Y]`:** Ubicación angular física del Sensor 2.
+- **Vectores de Vibración:** 
+  - **`V1` (Celeste):** Vibración medida en el plano del Sensor 1.
+  - **`V2` (Rojo):** Vibración medida en el plano del Sensor 2.
+- **Vectores de Masas:** 
+  - **`M1` / `M2` (Gris/Verde):** Representan el peso de prueba o la masa correctora recomendada.
+- **Álabes (Círculos Azules):** Muestran la distribución de los álabes (ej. 1, 2, 3...) según el tipo de rotor configurado.
 
 ---
 
@@ -50,4 +58,4 @@ Siguiendo los estándares industriales (ISO/Bently Nevada), los ángulos se graf
 Si tras instalar la masa correctora la vibración residual no es satisfactoria:
 1. Use **Nueva Iteración**.
 2. Ingrese la nueva vibración medida.
-3. La app recalculará una corrección adicional usando los coeficientes de influencia ya obtenidos, optimizando el tiempo de campo.
+3. La app recalculará una corrección adicional usando los coeficientes de influencia ya obtenidos, optimizando el tiempo de campo sin requerir nuevos pesos de prueba.

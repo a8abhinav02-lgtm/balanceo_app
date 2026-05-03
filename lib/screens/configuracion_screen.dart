@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/balanceo_provider.dart';
 import '../models/rotor_config.dart';
+import 'guia_screen.dart';
 
 class ConfiguracionScreen extends StatefulWidget {
   const ConfiguracionScreen({super.key});
@@ -113,6 +114,13 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'Guía de Operación',
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const GuiaScreen()));
+            },
+          ),
           if (_assetController.text.isNotEmpty && provider.listaActivos.contains(_assetController.text))
             IconButton(
               icon: const Icon(Icons.delete_outline),
