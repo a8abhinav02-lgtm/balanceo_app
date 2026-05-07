@@ -40,9 +40,9 @@ class HistorialScreen extends StatelessWidget {
                   if (es2Planos && item.masaPlano2 != null)
                     Text('Masa Plano 2: ${item.masaPlano2!.modulo.toStringAsFixed(2)} g @ ${item.masaPlano2!.anguloGrados.toStringAsFixed(1)}°'),
                   const SizedBox(height: 4),
-                  Text('Vibración residual: ${item.vibracionResidual1.toStringAsFixed(2)} μm'),
+                  Text('Vibración residual: ${item.vibracionResidual1.toStringAsFixed(2)} ${provider.config?.unidadStr ?? 'µm'}'),
                   if (es2Planos)
-                    Text('Vibración Sensor 2: ${item.vibracionResidual2.toStringAsFixed(2)} μm'),
+                    Text('Vibración Sensor 2: ${item.vibracionResidual2.toStringAsFixed(2)} ${provider.config?.unidadStr ?? 'µm'}'),
                 ],
               ),
             ),

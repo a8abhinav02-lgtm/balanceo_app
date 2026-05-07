@@ -1,5 +1,6 @@
 enum SentidoGiro { horario, antihorario }
 enum TipoRotor { continuo, discreto }
+enum UnidadVibracion { micras, mils }
 
 class RotorConfig {
   String nombreActivo;
@@ -15,6 +16,9 @@ class RotorConfig {
   // Nuevos campos para visualización avanzada
   double anguloReferenciaAlabe1;
   bool numeracionHoraria;
+  UnidadVibracion unidadVibracion;
+
+  String get unidadStr => unidadVibracion == UnidadVibracion.micras ? 'µm' : 'mils';
 
   RotorConfig({
     required this.nombreActivo,
@@ -28,6 +32,7 @@ class RotorConfig {
     this.limiteVibracion = 50,
     this.anguloReferenciaAlabe1 = 0,
     this.numeracionHoraria = false,
+    this.unidadVibracion = UnidadVibracion.micras,
   });
 
   RotorConfig copyWith({
@@ -42,6 +47,7 @@ class RotorConfig {
     double? limiteVibracion,
     double? anguloReferenciaAlabe1,
     bool? numeracionHoraria,
+    UnidadVibracion? unidadVibracion,
   }) {
     return RotorConfig(
       nombreActivo: nombreActivo ?? this.nombreActivo,
@@ -55,6 +61,7 @@ class RotorConfig {
       limiteVibracion: limiteVibracion ?? this.limiteVibracion,
       anguloReferenciaAlabe1: anguloReferenciaAlabe1 ?? this.anguloReferenciaAlabe1,
       numeracionHoraria: numeracionHoraria ?? this.numeracionHoraria,
+      unidadVibracion: unidadVibracion ?? this.unidadVibracion,
     );
   }
 
@@ -73,6 +80,7 @@ class RotorConfig {
     'limiteVibracion': limiteVibracion,
     'anguloReferenciaAlabe1': anguloReferenciaAlabe1,
     'numeracionHoraria': numeracionHoraria,
+    'unidadVibracion': unidadVibracion.index,
   };
 
   factory RotorConfig.fromJson(Map<String, dynamic> json) => RotorConfig(
@@ -87,5 +95,6 @@ class RotorConfig {
     limiteVibracion: (json['limiteVibracion'] as num? ?? 50).toDouble(),
     anguloReferenciaAlabe1: (json['anguloReferenciaAlabe1'] as num? ?? 0).toDouble(),
     numeracionHoraria: json['numeracionHoraria'] as bool? ?? false,
+    unidadVibracion: UnidadVibracion.values[json['unidadVibracion'] as int? ?? 0],
   );
 }

@@ -53,12 +53,18 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
       List<Color> cP1 = List.from(cIni);
       List<String> eP1 = List.from(eIni);
       
-      if (provider.mt1_temp != null) { vP1.add(provider.mt1_temp!); cP1.add(Colors.grey); eP1.add('Masa Prueba 1'); }
-      vP1.add(provider.v1_1_temp!); cP1.add(Colors.lightBlue); eP1.add('Sens 1 (X) w/P1');
+      // Vibration vectors for P1 trial (no mass in vectors list)
+      if (provider.v1_1_temp != null) { vP1.add(provider.v1_1_temp!); cP1.add(Colors.lightBlue); eP1.add('Sens 1 (X) w/P1'); }
       if (provider.v1_2_temp != null) { vP1.add(provider.v1_2_temp!); cP1.add(Colors.pink); eP1.add('Sens 2 (Y) w/P1'); }
-      
+
+      // Mass marker for trial mass P1
+      final List<MasaMarker> masasP1 = [];
+      if (provider.mt1_temp != null) {
+        masasP1.add(MasaMarker(masa: provider.mt1_temp!, color: Colors.grey.shade700, etiqueta: 'Masa Prueba 1'));
+      }
+
       double maxAmpP1 = vP1.isEmpty ? 10.0 : vP1.map((v) => v.modulo).reduce((a, b) => a > b ? a : b);
-      pages.add(Center(child: PolarPlot(vectores: vP1, colores: cP1, etiquetas: eP1, maxRadio: maxAmpP1 * 1.2)));
+      pages.add(Center(child: PolarPlot(vectores: vP1, colores: cP1, etiquetas: eP1, maxRadio: maxAmpP1 * 1.2, masas: masasP1)));
       pageTitles.add("EFECTO PRUEBA P1");
     }
 
@@ -68,12 +74,18 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
       List<Color> cP2 = List.from(cIni);
       List<String> eP2 = List.from(eIni);
       
-      if (provider.mt2_temp != null) { vP2.add(provider.mt2_temp!); cP2.add(Colors.grey); eP2.add('Masa Prueba 2'); }
-      vP2.add(provider.v2_1_temp!); cP2.add(Colors.lightBlue); eP2.add('Sens 1 (X) w/P2');
+      // Vibration vectors for P2 trial (no mass in vectors list)
+      if (provider.v2_1_temp != null) { vP2.add(provider.v2_1_temp!); cP2.add(Colors.lightBlue); eP2.add('Sens 1 (X) w/P2'); }
       if (provider.v2_2_temp != null) { vP2.add(provider.v2_2_temp!); cP2.add(Colors.pink); eP2.add('Sens 2 (Y) w/P2'); }
-      
+
+      // Mass marker for trial mass P2
+      final List<MasaMarker> masasP2 = [];
+      if (provider.mt2_temp != null) {
+        masasP2.add(MasaMarker(masa: provider.mt2_temp!, color: Colors.grey.shade700, etiqueta: 'Masa Prueba 2'));
+      }
+
       double maxAmpP2 = vP2.isEmpty ? 10.0 : vP2.map((v) => v.modulo).reduce((a, b) => a > b ? a : b);
-      pages.add(Center(child: PolarPlot(vectores: vP2, colores: cP2, etiquetas: eP2, maxRadio: maxAmpP2 * 1.2)));
+      pages.add(Center(child: PolarPlot(vectores: vP2, colores: cP2, etiquetas: eP2, maxRadio: maxAmpP2 * 1.2, masas: masasP2)));
       pageTitles.add("EFECTO PRUEBA P2");
     }
 
@@ -81,11 +93,14 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
     List<Complejo> vFin = List.from(vIni);
     List<Color> cFin = List.from(cIni);
     List<String> eFin = List.from(eIni);
-    if (m1 != null) { vFin.add(m1); cFin.add(Colors.green); eFin.add('Masa P1'); }
-    if (es2Planos && m2 != null) { vFin.add(m2); cFin.add(Colors.orange); eFin.add('Masa P2'); }
-    
+    // Correction masses — rendered as markers, NOT added to vectores
+    final List<MasaMarker> masasCorr = [];
+    if (m1 != null) { masasCorr.add(MasaMarker(masa: m1, color: Colors.green.shade700, etiqueta: 'Masa P1')); }
+    if (es2Planos && m2 != null) { masasCorr.add(MasaMarker(masa: m2, color: Colors.orange.shade800, etiqueta: 'Masa P2')); }
+
+    // Scale only from vibration vectors in the final view
     double maxAmpFin = vFin.isEmpty ? 10.0 : vFin.map((v) => v.modulo).reduce((a, b) => a > b ? a : b);
-    pages.add(Center(child: PolarPlot(vectores: vFin, colores: cFin, etiquetas: eFin, maxRadio: maxAmpFin * 1.2)));
+    pages.add(Center(child: PolarPlot(vectores: vFin, colores: cFin, etiquetas: eFin, maxRadio: maxAmpFin * 1.2, masas: masasCorr)));
     pageTitles.add("MASAS CORRECTORAS");
 
     return Scaffold(
@@ -225,11 +240,11 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
             children: [
               const Text('Ingrese la vibración actual tras instalar las masas:'),
               const SizedBox(height: 16),
-              TextField(controller: amp1Controller, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Sensor 1 (X) - Amplitud (μm)')),
+              TextField(controller: amp1Controller, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Sensor 1 (X) - Amplitud (${provider.config?.unidadStr ?? 'µm'})')),
               const SizedBox(height: 8),
               TextField(controller: fase1Controller, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Sensor 1 (X) - Fase (°)')),
               const SizedBox(height: 8),
-              TextField(controller: amp2Controller, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Sensor 2 (Y) - Amplitud (μm)')),
+              TextField(controller: amp2Controller, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: InputDecoration(labelText: 'Sensor 2 (Y) - Amplitud (${provider.config?.unidadStr ?? 'µm'})')),
               const SizedBox(height: 8),
               TextField(controller: fase2Controller, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'Sensor 2 (Y) - Fase (°)')),
             ],

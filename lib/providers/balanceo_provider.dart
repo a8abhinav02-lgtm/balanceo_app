@@ -11,6 +11,10 @@ class BalanceoProvider extends ChangeNotifier {
   Complejo? v0_2;
   Complejo? coeficiente1;
   List<List<Complejo>>? matrizCoeficientes;
+
+  /// En modo 1 plano, indica qué sensor (X=true, Y=false) se usa como base
+  /// para el cálculo del coeficiente de influencia y la masa correctora.
+  bool usarSensorX = true;
   
   // Datos de prueba para gráficos evolutivos
   Complejo? mt1_temp;
@@ -131,24 +135,35 @@ class BalanceoProvider extends ChangeNotifier {
     saveToDisk();
   }
 
-  void setMedicionInicial(Complejo s1, [Complejo? s2]) {
+  /// Guarda la medición inicial de ambos sensores X e Y.
+  void setMedicionInicial(Complejo s1, Complejo s2) {
     v0_1 = s1;
     v0_2 = s2;
     pasoActual = 2;
     notifyListeners();
   }
 
-  void calcularCoeficientes1Plano(Complejo pesoPrueba, Complejo v1, [Complejo? v2]) {
-    if (v0_1 == null) return;
-    
-    // Guardar para gráficos
+  /// Calcula el coeficiente de influencia en modo 1 plano de corrección.
+  /// Siempre recibe lecturas de ambos sensores (para gráficos),
+  /// pero usa [usarX] para determinar cuál vector impulsa el cálculo matemático.
+  void calcularCoeficientes1Plano({
+    required Complejo pesoPrueba,
+    required Complejo v1X,   // Sensor X con peso de prueba instalado
+    required Complejo v1Y,   // Sensor Y con peso de prueba instalado
+    required bool usarX,     // true = calcula con X, false = calcula con Y
+  }) {
+    if (v0_1 == null || v0_2 == null) return;
+
+    // Guardar ambos para gráficos evolutivos
     mt1_temp = pesoPrueba;
-    v1_1_temp = v1;
-    v1_2_temp = v2;
-    
-    Complejo deltaV = v1 - v0_1!;
-    coeficiente1 = deltaV / pesoPrueba;
-    
+    v1_1_temp = v1X;
+    v1_2_temp = v1Y;
+    usarSensorX = usarX;
+
+    final Complejo v0Base = usarX ? v0_1! : v0_2!;
+    final Complejo v1Base = usarX ? v1X  : v1Y;
+    coeficiente1 = (v1Base - v0Base) / pesoPrueba;
+
     pasoActual = 3;
     notifyListeners();
   }
@@ -179,9 +194,12 @@ class BalanceoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// La corrección se calcula sobre el mismo vector base que el coeficiente.
   Complejo? calcularCorreccion1Plano() {
-    if (v0_1 == null || coeficiente1 == null) return null;
-    return -v0_1! / coeficiente1!;
+    if (coeficiente1 == null) return null;
+    final Complejo? v0Base = usarSensorX ? v0_1 : v0_2;
+    if (v0Base == null) return null;
+    return -v0Base / coeficiente1!;
   }
 
   List<Complejo?> calcularCorreccion2Planos() {
@@ -248,17 +266,22 @@ class BalanceoProvider extends ChangeNotifier {
     double paso = 360 / config!.numAlabes;
     double ref = config!.anguloReferenciaAlabe1;
     bool numHoraria = config!.numeracionHoraria;
+    bool sentidoHorario = config!.sentido == SentidoGiro.horario;
+    
+    // Convertimos la fase de la masa (relativa al KP) a un ángulo absoluto cartesiano
+    double angMasaAbsoluto = config!.keyphasorAngulo + (sentidoHorario ? anguloMasa : -anguloMasa);
     
     int alabeCercano = 1;
     double minimaDiferencia = double.infinity;
     
     for (int i = 1; i <= config!.numAlabes; i++) {
-      double anguloAlabe = ref + (numHoraria ? -(i - 1) * paso : (i - 1) * paso);
+      // Ángulo absoluto de este álabe
+      double anguloAlabeAbsoluto = ref + (numHoraria ? -(i - 1) * paso : (i - 1) * paso);
       
-      double angMasaNorm = anguloMasa % 360;
+      double angMasaNorm = angMasaAbsoluto % 360;
       if (angMasaNorm < 0) angMasaNorm += 360;
       
-      double angAlabeNorm = anguloAlabe % 360;
+      double angAlabeNorm = anguloAlabeAbsoluto % 360;
       if (angAlabeNorm < 0) angAlabeNorm += 360;
       
       double diff = (angMasaNorm - angAlabeNorm).abs();

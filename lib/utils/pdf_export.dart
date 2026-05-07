@@ -56,7 +56,7 @@ class PdfExport {
             pw.Text('Número de álabes: ${provider.config?.numAlabes}', style: pw.TextStyle(font: font)),
           pw.Text('Ángulo keyphasor: ${provider.config?.keyphasorAngulo ?? 0}°', style: pw.TextStyle(font: font)),
           pw.Text('Planos de corrección: ${provider.config?.numPlanos ?? 1}', style: pw.TextStyle(font: font)),
-          pw.Text('Límite de vibración: ${provider.config?.limiteVibracion ?? 50} μm', style: pw.TextStyle(font: font)),
+          pw.Text('Límite de vibración: ${provider.config?.limiteVibracion ?? 50} ${provider.config?.unidadStr ?? 'µm'}', style: pw.TextStyle(font: font)),
           pw.SizedBox(height: 20),
 
           // Medición inicial
@@ -66,9 +66,9 @@ class PdfExport {
           ),
           pw.SizedBox(height: 10),
           if (provider.sensor1Actual != null)
-            pw.Text('Sensor 1: ${provider.sensor1Actual!.modulo.toStringAsFixed(2)} μm @ ${provider.sensor1Actual!.anguloGrados.toStringAsFixed(1)}°', style: pw.TextStyle(font: font)),
+            pw.Text('Sensor 1: ${provider.sensor1Actual!.modulo.toStringAsFixed(2)} ${provider.config?.unidadStr ?? 'µm'} @ ${provider.sensor1Actual!.anguloGrados.toStringAsFixed(1)}°', style: pw.TextStyle(font: font)),
           if (es2Planos && provider.sensor2Actual != null)
-            pw.Text('Sensor 2: ${provider.sensor2Actual!.modulo.toStringAsFixed(2)} μm @ ${provider.sensor2Actual!.anguloGrados.toStringAsFixed(1)}°', style: pw.TextStyle(font: font)),
+            pw.Text('Sensor 2: ${provider.sensor2Actual!.modulo.toStringAsFixed(2)} ${provider.config?.unidadStr ?? 'µm'} @ ${provider.sensor2Actual!.anguloGrados.toStringAsFixed(1)}°', style: pw.TextStyle(font: font)),
           pw.SizedBox(height: 20),
 
           // Coeficientes
@@ -78,7 +78,7 @@ class PdfExport {
           ),
           pw.SizedBox(height: 10),
           if (!es2Planos && provider.coeficiente1 != null)
-            pw.Text('C = ${provider.coeficiente1!.modulo.toStringAsFixed(2)} μm/g @ ${provider.coeficiente1!.anguloGrados.toStringAsFixed(1)}°', style: pw.TextStyle(font: font)),
+            pw.Text('C = ${provider.coeficiente1!.modulo.toStringAsFixed(2)} ${provider.config?.unidadStr ?? 'µm'}/g @ ${provider.coeficiente1!.anguloGrados.toStringAsFixed(1)}°', style: pw.TextStyle(font: font)),
           pw.SizedBox(height: 20),
 
           // Historial
@@ -100,8 +100,8 @@ class PdfExport {
                     pw.Text('Ángulo P1 (°)', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
                     if (es2Planos) pw.Text('Masa P2 (g)', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
                     if (es2Planos) pw.Text('Ángulo P2 (°)', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
-                    pw.Text('Vib S1 (μm)', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
-                    if (es2Planos) pw.Text('Vib S2 (μm)', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
+                    pw.Text('Vib S1 (${provider.config?.unidadStr ?? 'µm'})', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
+                    if (es2Planos) pw.Text('Vib S2 (${provider.config?.unidadStr ?? 'µm'})', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
                   ],
                 ),
                 for (final item in provider.historial)

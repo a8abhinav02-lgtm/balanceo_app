@@ -37,6 +37,9 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
 
   int _paso = 1; // 1: Plano1, 2: Plano2 (solo para 2 planos)
 
+  /// En modo 1 plano: true = usar Sensor X como base de cálculo, false = Sensor Y
+  bool _usarSensorX = true;
+
   @override
   void dispose() {
     _mtModController.dispose();
@@ -77,56 +80,87 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             if (!es2Planos) ...[
-              const Text('PESO DE PRUEBA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+              const Text('PESO DE PRUEBA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
               const SizedBox(height: 12),
               _buildCampo('Masa de prueba (g)', _mtModController),
               const SizedBox(height: 12),
               _buildCampo('Ángulo de colocación (°)', _mtFaseController),
               const SizedBox(height: 24),
               
-              const Text('Medición Sensor 1 (X):', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Medición Sensor 1 (X):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
               const SizedBox(height: 8),
-              _buildCampo('Amplitud (μm)', _v1AmpController),
+              _buildCampo('Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v1AmpController),
               const SizedBox(height: 12),
               _buildCampo('Fase (°)', _v1FaseController),
               const SizedBox(height: 20),
 
-              const Text('Medición Sensor 2 (Y):', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Medición Sensor 2 (Y):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
               const SizedBox(height: 8),
-              _buildCampo('Amplitud (μm)', _v2AmpController),
+              _buildCampo('Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v2AmpController),
               const SizedBox(height: 12),
               _buildCampo('Fase (°)', _v2FaseController),
+              const SizedBox(height: 28),
+
+              // ── Selector de vector para el cálculo ──────────────────────
+              const Divider(),
+              const SizedBox(height: 12),
+              const Text(
+                'Sensor de cálculo',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '¿Con cuál sensor se calcula la masa correctora?',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(
+                    value: true,
+                    label: Text('Sensor X'),
+                    icon: Icon(Icons.circle, color: Colors.blue, size: 12),
+                  ),
+                  ButtonSegment(
+                    value: false,
+                    label: Text('Sensor Y'),
+                    icon: Icon(Icons.square, color: Colors.red, size: 12),
+                  ),
+                ],
+                selected: {_usarSensorX},
+                onSelectionChanged: (val) => setState(() => _usarSensorX = val.first),
+              ),
             ] else ...[
               if (_paso == 1) ...[
-                const Text('PESO DE PRUEBA EN PLANO 1', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                const Text('PESO DE PRUEBA EN PLANO 1', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                 const SizedBox(height: 12),
                 _buildCampo('Masa de prueba (g)', _mt1ModController),
                 const SizedBox(height: 12),
                 _buildCampo('Ángulo de colocación (°)', _mt1FaseController),
                 const SizedBox(height: 20),
-                const Text('Mediciones con peso en P1:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Mediciones con peso en P1:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                 const SizedBox(height: 8),
-                _buildCampo('Sensor 1 (X) - Amplitud (μm)', _v1_1AmpController),
+                _buildCampo('Sensor 1 (X) - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v1_1AmpController),
                 const SizedBox(height: 12),
                 _buildCampo('Sensor 1 (X) - Fase (°)', _v1_1FaseController),
                 const SizedBox(height: 12),
-                _buildCampo('Sensor 2 (Y) - Amplitud (μm)', _v1_2AmpController),
+                _buildCampo('Sensor 2 (Y) - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v1_2AmpController),
                 const SizedBox(height: 12),
                 _buildCampo('Sensor 2 (Y) - Fase (°)', _v1_2FaseController),
               ] else ...[
-                const Text('PESO DE PRUEBA EN PLANO 2', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                const Text('PESO DE PRUEBA EN PLANO 2', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                 const SizedBox(height: 12),
                 _buildCampo('Masa de prueba (g)', _mt2ModController),
                 const SizedBox(height: 12),
                 _buildCampo('Ángulo de colocación (°)', _mt2FaseController),
                 const SizedBox(height: 20),
-                const Text('Mediciones con peso en P2:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Mediciones con peso en P2:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                 const SizedBox(height: 8),
-                _buildCampo('Sensor 1 (X) - Amplitud (μm)', _v2_1AmpController),
+                _buildCampo('Sensor 1 (X) - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v2_1AmpController),
                 const SizedBox(height: 12),
                 _buildCampo('Sensor 1 (X) - Fase (°)', _v2_1FaseController),
                 const SizedBox(height: 12),
-                _buildCampo('Sensor 2 (Y) - Amplitud (μm)', _v2_2AmpController),
+                _buildCampo('Sensor 2 (Y) - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v2_2AmpController),
                 const SizedBox(height: 12),
                 _buildCampo('Sensor 2 (Y) - Fase (°)', _v2_2FaseController),
               ],
@@ -165,11 +199,15 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
                     if (_formKey.currentState!.validate()) {
                       if (!es2Planos) {
                         final mt = Complejo.desdePolar(double.parse(_mtModController.text), double.parse(_mtFaseController.text));
-                        final v1 = Complejo.desdePolar(double.parse(_v1AmpController.text), double.parse(_v1FaseController.text));
-                        final v2 = Complejo.desdePolar(double.parse(_v2AmpController.text), double.parse(_v2FaseController.text));
-                        
-                        // Enviamos ambas mediciones al provider
-                        provider.calcularCoeficientes1Plano(mt, v1, v2);
+                        final v1X = Complejo.desdePolar(double.parse(_v1AmpController.text), double.parse(_v1FaseController.text));
+                        final v1Y = Complejo.desdePolar(double.parse(_v2AmpController.text), double.parse(_v2FaseController.text));
+
+                        provider.calcularCoeficientes1Plano(
+                          pesoPrueba: mt,
+                          v1X: v1X,
+                          v1Y: v1Y,
+                          usarX: _usarSensorX,
+                        );
                         Navigator.pushNamed(context, '/resultados');
                       } else {
                         if (_paso == 1) {

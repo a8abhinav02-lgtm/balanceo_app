@@ -4,6 +4,8 @@ import '../providers/balanceo_provider.dart';
 import '../models/rotor_config.dart';
 import 'guia_screen.dart';
 
+import '../widgets/polar_plot.dart';
+
 class ConfiguracionScreen extends StatefulWidget {
   const ConfiguracionScreen({super.key});
 
@@ -26,6 +28,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   // Nuevos campos
   late double _anguloAlabe1;
   late bool _numeracionHoraria;
+  late UnidadVibracion _unidadVibracion;
 
   @override
   void initState() {
@@ -42,6 +45,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     _limiteVibracion = provider.config?.limiteVibracion ?? 50;
     _anguloAlabe1 = provider.config?.anguloReferenciaAlabe1 ?? 0;
     _numeracionHoraria = provider.config?.numeracionHoraria ?? false;
+    _unidadVibracion = provider.config?.unidadVibracion ?? UnidadVibracion.micras;
   }
 
   @override
@@ -66,6 +70,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
           _limiteVibracion = provider.config!.limiteVibracion;
           _anguloAlabe1 = provider.config!.anguloReferenciaAlabe1;
           _numeracionHoraria = provider.config!.numeracionHoraria;
+          _unidadVibracion = provider.config!.unidadVibracion;
         });
       }
     });
@@ -190,20 +195,20 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
 
             if (_tipo == TipoRotor.discreto) ...[
               TextFormField(
-                key: ValueKey('numAlabes_$_numAlabes'),
+                key: ValueKey('numAlabes_${_assetController.text}'),
                 initialValue: _numAlabes.toString(),
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'Número de álabes', border: OutlineInputBorder()),
-                onChanged: (val) => _numAlabes = int.tryParse(val) ?? 0,
+                onChanged: (val) => setState(() => _numAlabes = int.tryParse(val) ?? 0),
                 validator: (v) => _tipo == TipoRotor.discreto && (int.tryParse(v ?? '0') ?? 0) <= 0 ? 'Requerido' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
-                key: ValueKey('anguloAlabe1_$_anguloAlabe1'),
+                key: ValueKey('anguloAlabe1_${_assetController.text}'),
                 initialValue: _anguloAlabe1.toString(),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Ángulo del Álabe #1 (°)', border: OutlineInputBorder(), helperText: 'Referencia visual en el gráfico'),
-                onChanged: (val) => _anguloAlabe1 = double.tryParse(val) ?? 0,
+                onChanged: (val) => setState(() => _anguloAlabe1 = double.tryParse(val) ?? 0),
               ),
               const SizedBox(height: 16),
               const Text('Sentido de numeración de álabes', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -220,11 +225,11 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
             ],
 
             TextFormField(
-              key: ValueKey('keyphasor_$_keyphasor'),
+              key: ValueKey('keyphasor_${_assetController.text}'),
               initialValue: _keyphasor.toString(),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'Ángulo keyphasor (°)', border: OutlineInputBorder()),
-              onChanged: (val) => _keyphasor = double.tryParse(val) ?? 0,
+              onChanged: (val) => setState(() => _keyphasor = double.tryParse(val) ?? 0),
             ),
             const SizedBox(height: 16),
 
@@ -232,21 +237,21 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
               children: [
                 Expanded(
                   child: TextFormField(
-                    key: ValueKey('sensorX_$_sensorX'),
+                    key: ValueKey('sensorX_${_assetController.text}'),
                     initialValue: _sensorX.toString(),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Sensor X (°)', border: OutlineInputBorder()),
-                    onChanged: (val) => _sensorX = double.tryParse(val) ?? 0,
+                    onChanged: (val) => setState(() => _sensorX = double.tryParse(val) ?? 0),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextFormField(
-                    key: ValueKey('sensorY_$_sensorY'),
+                    key: ValueKey('sensorY_${_assetController.text}'),
                     initialValue: _sensorY.toString(),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Sensor Y (°)', border: OutlineInputBorder()),
-                    onChanged: (val) => _sensorY = double.tryParse(val) ?? 0,
+                    onChanged: (val) => setState(() => _sensorY = double.tryParse(val) ?? 0),
                   ),
                 ),
               ],
@@ -254,6 +259,8 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
             const SizedBox(height: 16),
 
             const Text('Planos de corrección', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 2),
+            const Text('Número de puntos de colocación de masa en el rotor', style: TextStyle(fontSize: 11, color: Colors.grey)),
             const SizedBox(height: 8),
             SegmentedButton<int>(
               segments: const [
@@ -265,14 +272,68 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
             ),
             const SizedBox(height: 16),
 
-            TextFormField(
-              key: ValueKey('limite_$_limiteVibracion'),
-              initialValue: _limiteVibracion.toString(),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Límite Objetivo (μm)', border: OutlineInputBorder()),
-              onChanged: (val) => _limiteVibracion = double.tryParse(val) ?? 50,
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: TextFormField(
+                    key: ValueKey('limite_${_assetController.text}'),
+                    initialValue: _limiteVibracion.toString(),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(labelText: 'Límite Objetivo', border: OutlineInputBorder()),
+                    onChanged: (val) => setState(() => _limiteVibracion = double.tryParse(val) ?? 50),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 3,
+                  child: SegmentedButton<UnidadVibracion>(
+                    segments: const [
+                      ButtonSegment(value: UnidadVibracion.micras, label: Text('µm')),
+                      ButtonSegment(value: UnidadVibracion.mils, label: Text('mils')),
+                    ],
+                    selected: {_unidadVibracion},
+                    onSelectionChanged: (set) => setState(() => _unidadVibracion = set.first),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 80),
+            const SizedBox(height: 32),
+            const Divider(),
+            const SizedBox(height: 16),
+            const Text('Previsualización del Rotor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            Card(
+              elevation: 0,
+              color: Colors.blue.shade50.withAlpha(100),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.blue.shade100)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Center(
+                  child: PolarPlot(
+                    vectores: const [],
+                    colores: const [],
+                    etiquetas: const [],
+                    configOverride: RotorConfig(
+                      nombreActivo: _assetController.text,
+                      sentido: _sentido,
+                      tipo: _tipo,
+                      numAlabes: _numAlabes,
+                      keyphasorAngulo: _keyphasor,
+                      sensorXAngulo: _sensorX,
+                      sensorYAngulo: _sensorY,
+                      numPlanos: _numPlanos,
+                      limiteVibracion: _limiteVibracion,
+                      anguloReferenciaAlabe1: _anguloAlabe1,
+                      numeracionHoraria: _numeracionHoraria,
+                      unidadVibracion: _unidadVibracion,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 100), // Espacio para no quedar tapado por el botón inferior
           ],
         ),
       ),
@@ -298,6 +359,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                   limiteVibracion: _limiteVibracion,
                   anguloReferenciaAlabe1: _anguloAlabe1,
                   numeracionHoraria: _numeracionHoraria,
+                  unidadVibracion: _unidadVibracion,
                 );
                 provider.setConfig(config).then((_) {
                   if (!context.mounted) return;
