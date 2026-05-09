@@ -15,7 +15,7 @@ class BalanceoProvider extends ChangeNotifier {
   /// En modo 1 plano, indica qué sensor (X=true, Y=false) se usa como base
   /// para el cálculo del coeficiente de influencia y la masa correctora.
   bool usarSensorX = true;
-  
+
   // Datos de prueba para gráficos evolutivos
   Complejo? mt1_temp;
   Complejo? v1_1_temp;
@@ -23,6 +23,14 @@ class BalanceoProvider extends ChangeNotifier {
   Complejo? mt2_temp;
   Complejo? v2_1_temp;
   Complejo? v2_2_temp;
+
+  /// Vectores de la medición inicial original (nunca se sobreescriben).
+  /// Se usan para mostrar siempre el punto de partida en los gráficos.
+  Complejo? v0_1_original;
+  Complejo? v0_2_original;
+
+  /// Número de iteración actual: 1 = primera corrida, 2+ = refinamientos.
+  int iteracion = 1;
 
   List<HistorialItem> historial = [];
   int numPlanos = 1;
@@ -127,6 +135,9 @@ class BalanceoProvider extends ChangeNotifier {
   void reiniciarCalculos() {
     v0_1 = null;
     v0_2 = null;
+    v0_1_original = null;
+    v0_2_original = null;
+    iteracion = 1;
     coeficiente1 = null;
     matrizCoeficientes = null;
     mt1_temp = null; v1_1_temp = null; v1_2_temp = null;
@@ -136,9 +147,13 @@ class BalanceoProvider extends ChangeNotifier {
   }
 
   /// Guarda la medición inicial de ambos sensores X e Y.
+  /// También fija los vectores originales de referencia (se preservan entre iteraciones).
   void setMedicionInicial(Complejo s1, Complejo s2) {
     v0_1 = s1;
     v0_2 = s2;
+    v0_1_original = s1; // referencia inmutable del estado sucio
+    v0_2_original = s2;
+    iteracion = 1;
     pasoActual = 2;
     notifyListeners();
   }
@@ -234,9 +249,12 @@ class BalanceoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void nuevaIteracion(Complejo nuevoV0_1, [Complejo? nuevoV0_2]) {
+  /// Registra una nueva medición residual tras instalar las masas correctoras.
+  /// Los coeficientes de influencia (H) se conservan y se reutilizan.
+  void nuevaIteracion(Complejo nuevoV0_1, Complejo nuevoV0_2) {
     v0_1 = nuevoV0_1;
     v0_2 = nuevoV0_2;
+    iteracion++;
     pasoActual = 3;
     saveToDisk();
     notifyListeners();
