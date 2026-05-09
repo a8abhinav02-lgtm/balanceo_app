@@ -197,7 +197,52 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(icon: const Icon(Icons.picture_as_pdf), tooltip: 'Reporte', onPressed: () => PdfExport.imprimirReporte(provider)),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Reporte PDF',
+            onSelected: (value) async {
+              if (value == 'compartir') {
+                await PdfExport.compartirReporte(provider);
+              } else if (value == 'guardar') {
+                try {
+                  final path = await PdfExport.guardarReporte(provider);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('PDF guardado en: $path'),
+                        duration: const Duration(seconds: 5),
+                        action: SnackBarAction(label: 'OK', onPressed: () {}),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error al guardar: $e')),
+                    );
+                  }
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'compartir',
+                child: Row(children: [
+                  Icon(Icons.share, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text('Compartir PDF'),
+                ]),
+              ),
+              const PopupMenuItem(
+                value: 'guardar',
+                child: Row(children: [
+                  Icon(Icons.save_alt, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text('Guardar en dispositivo'),
+                ]),
+              ),
+            ],
+          ),
           IconButton(icon: const Icon(Icons.history), onPressed: () => Navigator.pushNamed(context, '/historial')),
         ],
       ),

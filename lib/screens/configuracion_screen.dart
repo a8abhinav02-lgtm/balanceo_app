@@ -16,6 +16,7 @@ class ConfiguracionScreen extends StatefulWidget {
 class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _assetController = TextEditingController();
+  final _tecnicoController = TextEditingController();
   late SentidoGiro _sentido;
   late TipoRotor _tipo;
   late int _numAlabes;
@@ -35,6 +36,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     super.initState();
     final provider = Provider.of<BalanceoProvider>(context, listen: false);
     _assetController.text = provider.config?.nombreActivo ?? '';
+    _tecnicoController.text = provider.config?.tecnico ?? '';
     _sentido = provider.config?.sentido ?? SentidoGiro.antihorario;
     _tipo = provider.config?.tipo ?? TipoRotor.continuo;
     _numAlabes = provider.config?.numAlabes ?? 0;
@@ -51,6 +53,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   @override
   void dispose() {
     _assetController.dispose();
+    _tecnicoController.dispose();
     super.dispose();
   }
 
@@ -167,6 +170,20 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
             ),
             const SizedBox(height: 24),
             const Divider(),
+            const SizedBox(height: 16),
+
+            const Text('Técnico responsable', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 2),
+            const Text('Aparece en el reporte PDF', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _tecnicoController,
+              decoration: const InputDecoration(
+                labelText: 'Nombre del técnico',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.engineering),
+              ),
+            ),
             const SizedBox(height: 16),
 
             const Text('Sentido de giro', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -360,6 +377,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                   anguloReferenciaAlabe1: _anguloAlabe1,
                   numeracionHoraria: _numeracionHoraria,
                   unidadVibracion: _unidadVibracion,
+                  tecnico: _tecnicoController.text.trim(),
                 );
                 provider.setConfig(config).then((_) {
                   if (!context.mounted) return;

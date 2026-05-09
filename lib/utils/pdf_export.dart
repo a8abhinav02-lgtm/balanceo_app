@@ -1,135 +1,353 @@
+import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:path_provider/path_provider.dart';
 import '../providers/balanceo_provider.dart';
 import '../models/rotor_config.dart';
+import '../models/complejo.dart';
+import '../widgets/polar_plot.dart';
 
 class PdfExport {
+
+  // ── Renderizado de gráficas polares ───────────────────────────────────────
+  static Future<pw.MemoryImage> _renderGrafica({
+    required List<Complejo> vectores,
+    required List<Color> colores,
+    required List<String> etiquetas,
+    required double maxRadio,
+    required RotorConfig? config,
+    required List<MasaMarker> masas,
+  }) async {
+    final bytes = await renderPolarToBytes(
+      vectores: vectores,
+      colores: colores,
+      etiquetas: etiquetas,
+      maxRadio: maxRadio,
+      config: config,
+      masas: masas,
+      size: 600,
+    );
+    return pw.MemoryImage(bytes);
+  }
+
+  // ── Widget helpers ─────────────────────────────────────────────────────────
+  static pw.Widget _sectionTitle(String text, pw.Font font) => pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 6, top: 16),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(text,
+                style: pw.TextStyle(
+                    font: font,
+                    fontSize: 14,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.blue800)),
+            pw.Divider(color: PdfColors.blue200, thickness: 1),
+          ],
+        ),
+      );
+
+  static pw.Widget _fila(String label, String value, pw.Font font,
+          {pw.Font? fontBold}) =>
+      pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(vertical: 2),
+        child: pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.SizedBox(
+              width: 180,
+              child: pw.Text('$label:',
+                  style: pw.TextStyle(
+                      font: fontBold ?? font,
+                      fontSize: 10,
+                      color: PdfColors.grey700)),
+            ),
+            pw.Expanded(
+              child: pw.Text(value,
+                  style: pw.TextStyle(font: font, fontSize: 10)),
+            ),
+          ],
+        ),
+      );
+
+  static pw.Widget _vectorFila(
+          String label, Complejo v, String unidad, pw.Font font,
+          {pw.Font? fontBold}) =>
+      _fila(
+        label,
+        '${v.modulo.toStringAsFixed(3)} $unidad  @  ${v.anguloGrados.toStringAsFixed(2)}°',
+        font,
+        fontBold: fontBold,
+      );
+
+  // ── Generador principal ───────────────────────────────────────────────────
   static Future<Uint8List> generarReporte(BalanceoProvider provider) async {
     final pdf = pw.Document();
-    final es2Planos = provider.config?.numPlanos == 2;
+    final config = provider.config;
+    final es2Planos = config?.numPlanos == 2;
+    final iteracion = provider.iteracion;
+    final unidad = config?.unidadStr ?? 'µm';
 
-    // Fuente local para soporte offline
-    final fontData = await rootBundle.load("assets/fonts/Roboto-Regular.ttf");
+    // Fuentes
+    final fontData = await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
     final font = pw.Font.ttf(fontData);
+    // Bold — reuse same font for now (no bold variant), mark visually via color
+    final fontBold = font;
 
+    // ── Masas correctoras ────────────────────────────────────────────────────
+    Complejo? m1;
+    Complejo? m2;
+    if (es2Planos) {
+      final corr = provider.calcularCorreccion2Planos();
+      m1 = corr[0];
+      m2 = corr[1];
+    } else {
+      m1 = provider.calcularCorreccion1Plano();
+    }
+
+    // ── Pre-renderizar gráficas polares ──────────────────────────────────────
+
+    // 1. Estado Inicial / Residual
+    List<Complejo> vIni = [];
+    List<Color> cIni = [];
+    List<String> eIni = [];
+    final esRef = iteracion > 1;
+
+    if (esRef) {
+      if (provider.v0_1_original != null) {
+        vIni.add(provider.v0_1_original!);
+        cIni.add(const Color(0x55007BFF)); // blue semi-transparent
+        eIni.add('Sensor X (orig.)');
+      }
+      if (provider.v0_2_original != null) {
+        vIni.add(provider.v0_2_original!);
+        cIni.add(const Color(0x55FF3B30));
+        eIni.add('Sensor Y (orig.)');
+      }
+      if (provider.v0_1 != null) {
+        vIni.add(provider.v0_1!);
+        cIni.add(const Color(0xFF007BFF));
+        eIni.add('Sensor X (residual)');
+      }
+      if (provider.v0_2 != null) {
+        vIni.add(provider.v0_2!);
+        cIni.add(const Color(0xFFFF3B30));
+        eIni.add('Sensor Y (residual)');
+      }
+    } else {
+      if (provider.v0_1 != null) { vIni.add(provider.v0_1!); cIni.add(const Color(0xFF007BFF)); eIni.add('Sensor 1 (X)'); }
+      if (provider.v0_2 != null) { vIni.add(provider.v0_2!); cIni.add(const Color(0xFFFF3B30)); eIni.add('Sensor 2 (Y)'); }
+    }
+
+    final double maxAmpIni = vIni.isEmpty ? 10.0
+        : vIni.map((v) => v.modulo).reduce((a, b) => a > b ? a : b);
+    final imgIni = await _renderGrafica(
+        vectores: vIni, colores: cIni, etiquetas: eIni,
+        maxRadio: maxAmpIni * 1.2, config: config, masas: []);
+
+    // 2. Efecto Prueba P1
+    pw.MemoryImage? imgP1;
+    if (provider.v1_1_temp != null) {
+      final List<Complejo> vP1 = [...vIni.take(2)];
+      final List<Color> cP1 = [...cIni.take(2)];
+      final List<String> eP1 = [...eIni.take(2)];
+      if (provider.v1_1_temp != null) { vP1.add(provider.v1_1_temp!); cP1.add(const Color(0xFF56B4E9)); eP1.add('Sens X w/Prueba'); }
+      if (provider.v1_2_temp != null) { vP1.add(provider.v1_2_temp!); cP1.add(const Color(0xFFFFB3C1)); eP1.add('Sens Y w/Prueba'); }
+      final List<MasaMarker> masasP1 = [];
+      if (provider.mt1_temp != null) {
+        masasP1.add(MasaMarker(masa: provider.mt1_temp!, color: const Color(0xFF555555), etiqueta: 'Masa Prueba 1'));
+      }
+      final double maxP1 = vP1.isEmpty ? 10.0 : vP1.map((v) => v.modulo).reduce((a, b) => a > b ? a : b);
+      imgP1 = await _renderGrafica(
+          vectores: vP1, colores: cP1, etiquetas: eP1,
+          maxRadio: maxP1 * 1.2, config: config, masas: masasP1);
+    }
+
+    // 3. Masas Correctoras
+    List<Complejo> vFin = List.from(vIni);
+    List<Color> cFin = List.from(cIni);
+    List<String> eFin = List.from(eIni);
+    final List<MasaMarker> masasCorr = [];
+    if (m1 != null) masasCorr.add(MasaMarker(masa: m1, color: const Color(0xFF2D8653), etiqueta: 'Masa P1'));
+    if (es2Planos && m2 != null) masasCorr.add(MasaMarker(masa: m2, color: const Color(0xFFE27700), etiqueta: 'Masa P2'));
+    final double maxFin = vFin.isEmpty ? 10.0 : vFin.map((v) => v.modulo).reduce((a, b) => a > b ? a : b);
+    final imgFin = await _renderGrafica(
+        vectores: vFin, colores: cFin, etiquetas: eFin,
+        maxRadio: maxFin * 1.2, config: config, masas: masasCorr);
+
+    // ── Construir PDF ─────────────────────────────────────────────────────────
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: pw.EdgeInsets.all(32),
-        build: (context) => [
-          // Título
-          pw.Center(
-            child: pw.Column(
+        margin: const pw.EdgeInsets.symmetric(horizontal: 36, vertical: 32),
+        header: (ctx) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text(
-                  'Reporte de Balanceo',
-                  style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, font: font),
-                ),
-                pw.Text(
-                  'Activo: ${provider.config?.nombreActivo ?? "Desconocido"}',
-                  style: pw.TextStyle(fontSize: 18, color: PdfColors.blue700, font: font),
-                ),
+                pw.Text('REPORTE DE BALANCEO DINÁMICO',
+                    style: pw.TextStyle(
+                        font: font, fontSize: 16, fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue900)),
+                pw.Text('Pág. ${ctx.pageNumber}/${ctx.pagesCount}',
+                    style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey)),
               ],
             ),
-          ),
-          pw.SizedBox(height: 20),
+            pw.Divider(color: PdfColors.blue300, thickness: 2),
+            pw.SizedBox(height: 4),
+          ],
+        ),
+        build: (ctx) => [
 
-          // Fecha
-          pw.Text(
-            'Generado: ${DateTime.now().toString().substring(0, 19)}',
-            style: pw.TextStyle(fontSize: 10, font: font),
-          ),
-          pw.Divider(),
-          pw.SizedBox(height: 20),
+          // ── 1. Identificación ────────────────────────────────────────────
+          _sectionTitle('1. Identificación', font),
+          _fila('Activo / Equipo', config?.nombreActivo ?? 'N/A', font, fontBold: fontBold),
+          _fila('Técnico responsable', config?.tecnico.isEmpty == true ? 'N/A' : (config?.tecnico ?? 'N/A'), font, fontBold: fontBold),
+          _fila('Fecha del reporte', DateTime.now().toLocal().toString().substring(0, 16), font, fontBold: fontBold),
+          _fila('Iteración actual', '$iteracion', font, fontBold: fontBold),
 
-          // Configuración
-          pw.Text(
-            '1. Configuración del Rotor',
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, font: font),
-          ),
-          pw.SizedBox(height: 10),
-          pw.Text('Sentido de giro: ${provider.config?.sentidoTexto ?? "N/A"}', style: pw.TextStyle(font: font)),
-          pw.Text('Tipo de rotor: ${provider.config?.tipoTexto ?? "N/A"}', style: pw.TextStyle(font: font)),
-          if (provider.config?.tipo == TipoRotor.discreto)
-            pw.Text('Número de álabes: ${provider.config?.numAlabes}', style: pw.TextStyle(font: font)),
-          pw.Text('Ángulo keyphasor: ${provider.config?.keyphasorAngulo ?? 0}°', style: pw.TextStyle(font: font)),
-          pw.Text('Planos de corrección: ${provider.config?.numPlanos ?? 1}', style: pw.TextStyle(font: font)),
-          pw.Text('Límite de vibración: ${provider.config?.limiteVibracion ?? 50} ${provider.config?.unidadStr ?? 'µm'}', style: pw.TextStyle(font: font)),
-          pw.SizedBox(height: 20),
+          // ── 2. Configuración del rotor ───────────────────────────────────
+          _sectionTitle('2. Configuración del Rotor', font),
+          _fila('Sentido de giro', config?.sentidoTexto ?? 'N/A', font),
+          _fila('Tipo de rotor', config?.tipoTexto ?? 'N/A', font),
+          if (config?.tipo == TipoRotor.discreto)
+            _fila('Número de álabes', '${config?.numAlabes}', font),
+          _fila('Ángulo Keyphasor', '${config?.keyphasorAngulo ?? 0}°', font),
+          _fila('Ángulo Sensor X', '${config?.sensorXAngulo ?? 0}°', font),
+          _fila('Ángulo Sensor Y', '${config?.sensorYAngulo ?? 90}°', font),
+          _fila('Planos de corrección', '${config?.numPlanos ?? 1}', font),
+          _fila('Unidad de vibración', config?.unidadStr ?? 'µm', font),
+          _fila('Límite de vibración', '${config?.limiteVibracion ?? 50} ${config?.unidadStr ?? 'µm'}', font),
 
-          // Medición inicial
-          pw.Text(
-            '2. Medición Inicial',
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, font: font),
-          ),
-          pw.SizedBox(height: 10),
-          if (provider.sensor1Actual != null)
-            pw.Text('Sensor 1: ${provider.sensor1Actual!.modulo.toStringAsFixed(2)} ${provider.config?.unidadStr ?? 'µm'} @ ${provider.sensor1Actual!.anguloGrados.toStringAsFixed(1)}°', style: pw.TextStyle(font: font)),
-          if (es2Planos && provider.sensor2Actual != null)
-            pw.Text('Sensor 2: ${provider.sensor2Actual!.modulo.toStringAsFixed(2)} ${provider.config?.unidadStr ?? 'µm'} @ ${provider.sensor2Actual!.anguloGrados.toStringAsFixed(1)}°', style: pw.TextStyle(font: font)),
-          pw.SizedBox(height: 20),
+          // ── 3. Medición Inicial ──────────────────────────────────────────
+          _sectionTitle(esRef ? '3. Vibración Residual (It.${iteracion - 1})' : '3. Medición Inicial', font),
+          if (provider.v0_1 != null)
+            _vectorFila('Sensor 1 (X)', provider.v0_1!, unidad, font, fontBold: fontBold),
+          if (provider.v0_2 != null)
+            _vectorFila('Sensor 2 (Y)', provider.v0_2!, unidad, font, fontBold: fontBold),
+          if (esRef && provider.v0_1_original != null) ...[
+            pw.SizedBox(height: 4),
+            pw.Text('Valores originales (estado sucio):',
+                style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey600)),
+            _vectorFila('Sensor X (orig.)', provider.v0_1_original!, unidad, font),
+            if (provider.v0_2_original != null)
+              _vectorFila('Sensor Y (orig.)', provider.v0_2_original!, unidad, font),
+          ],
+          pw.SizedBox(height: 8),
+          pw.Center(child: pw.Image(imgIni, width: 280, height: 280)),
 
-          // Coeficientes
-          pw.Text(
-            '3. Coeficientes de Influencia',
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, font: font),
-          ),
-          pw.SizedBox(height: 10),
-          if (!es2Planos && provider.coeficiente1 != null)
-            pw.Text('C = ${provider.coeficiente1!.modulo.toStringAsFixed(2)} ${provider.config?.unidadStr ?? 'µm'}/g @ ${provider.coeficiente1!.anguloGrados.toStringAsFixed(1)}°', style: pw.TextStyle(font: font)),
-          pw.SizedBox(height: 20),
+          // ── 4. Peso de Prueba ────────────────────────────────────────────
+          if (imgP1 != null) ...[
+            _sectionTitle('4. Efecto del Peso de Prueba', font),
+            if (provider.mt1_temp != null)
+              _vectorFila('Masa de prueba P1', provider.mt1_temp!, 'g', font, fontBold: fontBold),
+            if (provider.v1_1_temp != null)
+              _vectorFila('Sensor X c/prueba', provider.v1_1_temp!, unidad, font),
+            if (provider.v1_2_temp != null)
+              _vectorFila('Sensor Y c/prueba', provider.v1_2_temp!, unidad, font),
+            pw.SizedBox(height: 8),
+            pw.Center(child: pw.Image(imgP1, width: 280, height: 280)),
+          ],
 
-          // Historial
-          pw.Text(
-            '4. Historial de Iteraciones',
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, font: font),
-          ),
-          pw.SizedBox(height: 10),
+          // ── 5. Coeficientes de Influencia ────────────────────────────────
+          _sectionTitle('5. Coeficientes de Influencia (H)', font),
+          if (!es2Planos && provider.coeficiente1 != null) ...[
+            _fila('Sensor de cálculo', provider.usarSensorX ? 'Sensor X' : 'Sensor Y', font),
+            _vectorFila('H₁', provider.coeficiente1!, '$unidad/g', font, fontBold: fontBold),
+          ],
+          if (es2Planos && provider.matrizCoeficientes != null) ...[
+            _vectorFila('H₁₁', provider.matrizCoeficientes![0][0], '$unidad/g', font),
+            _vectorFila('H₁₂', provider.matrizCoeficientes![0][1], '$unidad/g', font),
+            _vectorFila('H₂₁', provider.matrizCoeficientes![1][0], '$unidad/g', font),
+            _vectorFila('H₂₂', provider.matrizCoeficientes![1][1], '$unidad/g', font),
+          ],
+
+          // ── 6. Masa Correctora ───────────────────────────────────────────
+          _sectionTitle('6. Masa Correctora — It. $iteracion', font),
+          if (m1 != null) ...[
+            _fila('Masa P1', '${m1.modulo.toStringAsFixed(3)} g', font, fontBold: fontBold),
+            _fila('Ángulo P1', '${m1.anguloGrados.toStringAsFixed(2)}°', font, fontBold: fontBold),
+            if (config?.tipo == TipoRotor.discreto)
+              _fila('Álabe sugerido P1',
+                  '${provider.sugerirAlabe(m1.anguloGrados) ?? 'N/A'}', font),
+          ],
+          if (es2Planos && m2 != null) ...[
+            pw.SizedBox(height: 4),
+            _fila('Masa P2', '${m2.modulo.toStringAsFixed(3)} g', font, fontBold: fontBold),
+            _fila('Ángulo P2', '${m2.anguloGrados.toStringAsFixed(2)}°', font, fontBold: fontBold),
+            if (config?.tipo == TipoRotor.discreto)
+              _fila('Álabe sugerido P2',
+                  '${provider.sugerirAlabe(m2.anguloGrados) ?? 'N/A'}', font),
+          ],
+          pw.SizedBox(height: 8),
+          pw.Center(child: pw.Image(imgFin, width: 280, height: 280)),
+
+          // ── 7. Historial de Iteraciones ──────────────────────────────────
+          _sectionTitle('7. Historial de Iteraciones', font),
           if (provider.historial.isEmpty)
-            pw.Text('No hay iteraciones registradas', style: pw.TextStyle(font: font))
+            pw.Text('No hay iteraciones registradas en el historial.',
+                style: pw.TextStyle(font: font, fontSize: 10, color: PdfColors.grey))
           else
-            pw.Table(
-              border: pw.TableBorder.all(),
-              children: [
-                pw.TableRow(
-                  children: [
-                    pw.Text('Iter', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
-                    pw.Text('Masa P1 (g)', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
-                    pw.Text('Ángulo P1 (°)', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
-                    if (es2Planos) pw.Text('Masa P2 (g)', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
-                    if (es2Planos) pw.Text('Ángulo P2 (°)', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
-                    pw.Text('Vib S1 (${provider.config?.unidadStr ?? 'µm'})', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
-                    if (es2Planos) pw.Text('Vib S2 (${provider.config?.unidadStr ?? 'µm'})', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font)),
-                  ],
-                ),
+            pw.TableHelper.fromTextArray(
+              border: pw.TableBorder.all(color: PdfColors.grey400),
+              headerStyle: pw.TextStyle(font: font, fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
+              cellStyle: pw.TextStyle(font: font, fontSize: 9),
+              cellPadding: const pw.EdgeInsets.all(4),
+              headers: [
+                'It.', 'Masa P1 (g)', 'Ángulo P1 (°)',
+                if (es2Planos) 'Masa P2 (g)', if (es2Planos) 'Ángulo P2 (°)',
+                'Vib. S1 ($unidad)', if (es2Planos) 'Vib. S2 ($unidad)',
+              ],
+              data: [
                 for (final item in provider.historial)
-                  pw.TableRow(
-                    children: [
-                      pw.Text('${item.iteracion}', style: pw.TextStyle(font: font)),
-                      pw.Text(item.masaPlano1?.modulo.toStringAsFixed(2) ?? 'N/A', style: pw.TextStyle(font: font)),
-                      pw.Text(item.masaPlano1?.anguloGrados.toStringAsFixed(1) ?? 'N/A', style: pw.TextStyle(font: font)),
-                      if (es2Planos) pw.Text(item.masaPlano2?.modulo.toStringAsFixed(2) ?? 'N/A', style: pw.TextStyle(font: font)),
-                      if (es2Planos) pw.Text(item.masaPlano2?.anguloGrados.toStringAsFixed(1) ?? 'N/A', style: pw.TextStyle(font: font)),
-                      pw.Text(item.vibracionResidual1.toStringAsFixed(2), style: pw.TextStyle(font: font)),
-                      if (es2Planos) pw.Text(item.vibracionResidual2.toStringAsFixed(2), style: pw.TextStyle(font: font)),
-                    ],
-                  ),
+                  [
+                    '${item.iteracion}',
+                    item.masaPlano1?.modulo.toStringAsFixed(3) ?? 'N/A',
+                    item.masaPlano1?.anguloGrados.toStringAsFixed(2) ?? 'N/A',
+                    if (es2Planos) item.masaPlano2?.modulo.toStringAsFixed(3) ?? 'N/A',
+                    if (es2Planos) item.masaPlano2?.anguloGrados.toStringAsFixed(2) ?? 'N/A',
+                    item.vibracionResidual1.toStringAsFixed(3),
+                    if (es2Planos) item.vibracionResidual2.toStringAsFixed(3),
+                  ],
               ],
             ),
-          pw.SizedBox(height: 20),
 
-          // Recomendaciones
-          pw.Text(
-            '5. Recomendaciones',
-            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, font: font),
-          ),
-          pw.SizedBox(height: 10),
-          pw.Text('• Verificar la correcta instalación de las masas correctoras.', style: pw.TextStyle(font: font)),
-          pw.Text('• Confirmar la calibración del sistema de medición de fase.', style: pw.TextStyle(font: font)),
-          pw.Text('• Evaluar el paso por velocidades críticas (700 y 1640 cpm).', style: pw.TextStyle(font: font)),
-          pw.Text('• Documentar el proceso para futuros mantenimientos.', style: pw.TextStyle(font: font)),
+          // ── 8. Recomendaciones ───────────────────────────────────────────
+          _sectionTitle('8. Recomendaciones', font),
+          ...[
+            '• Verificar la correcta instalación de las masas correctoras antes de arrancar.',
+            '• Confirmar la calibración del sistema de medición de fase (keyphasor).',
+            '• Realizar una medición de verificación tras instalar las masas.',
+            '• Documentar el proceso completo para futuros mantenimientos.',
+            '• Si la vibración residual supera el límite, iniciar nueva iteración de refinamiento.',
+          ].map((rec) => pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                child: pw.Text(rec, style: pw.TextStyle(font: font, fontSize: 10)),
+              )),
+
+          pw.SizedBox(height: 30),
+          // Firma
+          pw.Row(children: [
+            pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
+              pw.SizedBox(height: 30),
+              pw.Divider(color: PdfColors.grey),
+              pw.Text('Firma del Técnico', style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey)),
+              pw.Text(config?.tecnico.isNotEmpty == true ? config!.tecnico : '________________________',
+                  style: pw.TextStyle(font: font, fontSize: 9)),
+            ])),
+            pw.SizedBox(width: 40),
+            pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
+              pw.SizedBox(height: 30),
+              pw.Divider(color: PdfColors.grey),
+              pw.Text('Fecha / Hora', style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey)),
+              pw.Text(DateTime.now().toLocal().toString().substring(0, 16),
+                  style: pw.TextStyle(font: font, fontSize: 9)),
+            ])),
+          ]),
         ],
       ),
     );
@@ -137,8 +355,34 @@ class PdfExport {
     return pdf.save();
   }
 
+  // ── Compartir (email, WhatsApp, etc.) ─────────────────────────────────────
+  static Future<void> compartirReporte(BalanceoProvider provider) async {
+    final bytes = await generarReporte(provider);
+    final nombre = provider.config?.nombreActivo ?? 'reporte';
+    final filename = 'balanceo_${nombre.replaceAll(' ', '_')}.pdf';
+    await Printing.sharePdf(bytes: bytes, filename: filename);
+  }
+
+  // ── Guardar en almacenamiento local ───────────────────────────────────────
+  static Future<String> guardarReporte(BalanceoProvider provider) async {
+    final bytes = await generarReporte(provider);
+    final nombre = provider.config?.nombreActivo ?? 'reporte';
+    final filename = 'balanceo_${nombre.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+
+    Directory dir;
+    if (Platform.isAndroid) {
+      dir = (await getExternalStorageDirectory()) ?? await getApplicationDocumentsDirectory();
+    } else {
+      dir = await getApplicationDocumentsDirectory();
+    }
+
+    final file = File('${dir.path}/$filename');
+    await file.writeAsBytes(bytes);
+    return file.path;
+  }
+
+  // ── Función legacy para compatibilidad ───────────────────────────────────
   static Future<void> imprimirReporte(BalanceoProvider provider) async {
-    final pdfBytes = await generarReporte(provider);
-    await Printing.sharePdf(bytes: pdfBytes, filename: 'reporte_balanceo.pdf');
+    await compartirReporte(provider);
   }
 }

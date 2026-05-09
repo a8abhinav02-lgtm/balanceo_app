@@ -18,6 +18,9 @@ class RotorConfig {
   bool numeracionHoraria;
   UnidadVibracion unidadVibracion;
 
+  /// Nombre del técnico responsable del balanceo (para el reporte PDF).
+  String tecnico;
+
   String get unidadStr => unidadVibracion == UnidadVibracion.micras ? 'µm' : 'mils';
 
   RotorConfig({
@@ -33,6 +36,7 @@ class RotorConfig {
     this.anguloReferenciaAlabe1 = 0,
     this.numeracionHoraria = false,
     this.unidadVibracion = UnidadVibracion.micras,
+    this.tecnico = '',
   });
 
   RotorConfig copyWith({
@@ -48,6 +52,7 @@ class RotorConfig {
     double? anguloReferenciaAlabe1,
     bool? numeracionHoraria,
     UnidadVibracion? unidadVibracion,
+    String? tecnico,
   }) {
     return RotorConfig(
       nombreActivo: nombreActivo ?? this.nombreActivo,
@@ -62,6 +67,7 @@ class RotorConfig {
       anguloReferenciaAlabe1: anguloReferenciaAlabe1 ?? this.anguloReferenciaAlabe1,
       numeracionHoraria: numeracionHoraria ?? this.numeracionHoraria,
       unidadVibracion: unidadVibracion ?? this.unidadVibracion,
+      tecnico: tecnico ?? this.tecnico,
     );
   }
 
@@ -81,6 +87,7 @@ class RotorConfig {
     'anguloReferenciaAlabe1': anguloReferenciaAlabe1,
     'numeracionHoraria': numeracionHoraria,
     'unidadVibracion': unidadVibracion.index,
+    'tecnico': tecnico,
   };
 
   factory RotorConfig.fromJson(Map<String, dynamic> json) => RotorConfig(
@@ -96,5 +103,6 @@ class RotorConfig {
     anguloReferenciaAlabe1: (json['anguloReferenciaAlabe1'] as num? ?? 0).toDouble(),
     numeracionHoraria: json['numeracionHoraria'] as bool? ?? false,
     unidadVibracion: UnidadVibracion.values[json['unidadVibracion'] as int? ?? 0],
+    tecnico: json['tecnico'] as String? ?? '',
   );
 }

@@ -1,9 +1,48 @@
 import 'dart:math';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/complejo.dart';
 import '../providers/balanceo_provider.dart';
 import 'package:provider/provider.dart';
 import '../models/rotor_config.dart';
+
+/// Renders a polar plot to raw PNG bytes without needing a widget in the tree.
+/// Used by PdfExport to embed charts in the report.
+Future<Uint8List> renderPolarToBytes({
+  required List<Complejo> vectores,
+  required List<Color> colores,
+  required List<String> etiquetas,
+  required double maxRadio,
+  required RotorConfig? config,
+  required List<MasaMarker> masas,
+  double size = 500,
+}) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, size, size));
+
+  // White background
+  canvas.drawRect(
+    Rect.fromLTWH(0, 0, size, size),
+    Paint()..color = Colors.white,
+  );
+
+  final painter = _PolarPainter(
+    vectores: vectores,
+    colores: colores,
+    etiquetas: etiquetas,
+    maxRadio: maxRadio,
+    config: config,
+    masas: masas,
+  );
+  painter.paint(canvas, Size(size, size));
+
+  final picture = recorder.endRecording();
+  final img = await picture.toImage(size.toInt(), size.toInt());
+  final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+  return byteData!.buffer.asUint8List();
+}
+
 
 /// Represents a mass marker to be rendered as a dot on the outer ring.
 class MasaMarker {
