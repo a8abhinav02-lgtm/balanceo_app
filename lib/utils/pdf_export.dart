@@ -90,11 +90,18 @@ class PdfExport {
     final iteracion = provider.iteracion;
     final unidad = config?.unidadStr ?? 'µm';
 
-    // Fuentes
-    final fontData = await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
-    final font = pw.Font.ttf(fontData);
-    // Bold — reuse same font for now (no bold variant), mark visually via color
-    final fontBold = font;
+    // ── Fuentes ──────────────────────────────────────────────────────────────
+    // Intentar cargar Roboto de Google Fonts (con soporte unicode).
+    // Si falla (ej. sin internet), hacer fallback a Helvetica estándar.
+    pw.Font font;
+    pw.Font fontBold;
+    try {
+      font = await PdfGoogleFonts.robotoRegular();
+      fontBold = await PdfGoogleFonts.robotoBold();
+    } catch (e) {
+      font = pw.Font.helvetica();
+      fontBold = pw.Font.helveticaBold();
+    }
 
     // ── Masas correctoras ────────────────────────────────────────────────────
     Complejo? m1;
@@ -266,7 +273,7 @@ class PdfExport {
           ],
 
           // ── 6. Masa Correctora ───────────────────────────────────────────
-          _sectionTitle('6. Masa Correctora — It. $iteracion', font),
+          _sectionTitle('6. Masa Correctora - It. $iteracion', font),
           if (m1 != null) ...[
             _fila('Masa P1', '${m1.modulo.toStringAsFixed(3)} g', font, fontBold: fontBold),
             _fila('Ángulo P1', '${m1.anguloGrados.toStringAsFixed(2)}°', font, fontBold: fontBold),
@@ -319,11 +326,11 @@ class PdfExport {
           // ── 8. Recomendaciones ───────────────────────────────────────────
           _sectionTitle('8. Recomendaciones', font),
           ...[
-            '• Verificar la correcta instalación de las masas correctoras antes de arrancar.',
-            '• Confirmar la calibración del sistema de medición de fase (keyphasor).',
-            '• Realizar una medición de verificación tras instalar las masas.',
-            '• Documentar el proceso completo para futuros mantenimientos.',
-            '• Si la vibración residual supera el límite, iniciar nueva iteración de refinamiento.',
+            '- Verificar la correcta instalación de las masas correctoras antes de arrancar.',
+            '- Confirmar la calibración del sistema de medición de fase (keyphasor).',
+            '- Realizar una medición de verificación tras instalar las masas.',
+            '- Documentar el proceso completo para futuros mantenimientos.',
+            '- Si la vibración residual supera el límite, iniciar nueva iteración de refinamiento.',
           ].map((rec) => pw.Padding(
                 padding: const pw.EdgeInsets.symmetric(vertical: 2),
                 child: pw.Text(rec, style: pw.TextStyle(font: font, fontSize: 10)),
