@@ -92,17 +92,12 @@ class PdfExport {
     final unidad = config?.unidadStr ?? 'µm';
 
     // ── Fuentes ──────────────────────────────────────────────────────────────
-    // Intentar cargar Roboto de Google Fonts (con soporte unicode).
-    // Si falla (ej. sin internet), hacer fallback a Helvetica estándar.
-    pw.Font font;
-    pw.Font fontBold;
-    try {
-      font = await PdfGoogleFonts.robotoRegular();
-      fontBold = await PdfGoogleFonts.robotoBold();
-    } catch (e) {
-      font = pw.Font.helvetica();
-      fontBold = pw.Font.helveticaBold();
-    }
+    // Usar Helvetica estándar. Se evitó GoogleFonts porque puede causar 
+    // hangs (bloqueos infinitos) si el dispositivo intenta descargar la fuente 
+    // y la red es inestable.
+    final font = pw.Font.helvetica();
+    final fontBold = pw.Font.helveticaBold();
+
 
     // ── Masas correctoras ────────────────────────────────────────────────────
     Complejo? m1;

@@ -202,8 +202,17 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
             tooltip: 'Reporte PDF',
             onSelected: (value) async {
               if (value == 'compartir') {
-                await PdfExport.compartirReporte(provider);
+                try {
+                  await PdfExport.compartirReporte(provider);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error al compartir: $e')),
+                    );
+                  }
+                }
               } else if (value == 'guardar') {
+
                 try {
                   final path = await PdfExport.guardarReporte(provider);
                   if (context.mounted) {
