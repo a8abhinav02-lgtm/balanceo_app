@@ -215,7 +215,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
 
                 try {
                   final path = await PdfExport.guardarReporte(provider);
-                  if (context.mounted) {
+                  if (context.mounted && path != null && path.isNotEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('PDF guardado en: $path'),
@@ -225,6 +225,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                     );
                   }
                 } catch (e) {
+
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Error al guardar: $e')),

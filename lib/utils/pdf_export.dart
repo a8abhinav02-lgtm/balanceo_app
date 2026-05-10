@@ -373,16 +373,17 @@ class PdfExport {
   }
 
   // ── Guardar en almacenamiento local ───────────────────────────────────────
-  static Future<String> guardarReporte(BalanceoProvider provider) async {
+  static Future<String?> guardarReporte(BalanceoProvider provider) async {
     final bytes = await generarReporte(provider);
     final nombre = provider.config?.nombreActivo ?? 'reporte';
     final baseName = 'balanceo_${nombre.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}';
 
-    // file_saver guarda nativamente en la carpeta "Descargas" en Android (Downloads) 
-    // y abre un cuadro de diálogo en desktop/iOS para máxima seguridad y conveniencia.
-    final path = await FileSaver.instance.saveFile(
-      name: '$baseName.pdf',
+    // saveAs abre un cuadro de diálogo nativo en Android (Storage Access Framework) 
+    // y en desktop/iOS para que el usuario elija exactamente dónde guardarlo (ej. Descargas).
+    final path = await FileSaver.instance.saveAs(
+      name: baseName,
       bytes: bytes,
+      fileExtension: 'pdf',
       mimeType: MimeType.pdf,
     );
 
