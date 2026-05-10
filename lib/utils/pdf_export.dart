@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:file_saver/file_saver.dart';
 import '../providers/balanceo_provider.dart';
 import '../models/rotor_config.dart';
 import '../models/complejo.dart';
@@ -367,25 +368,31 @@ class PdfExport {
     final bytes = await generarReporte(provider);
     final nombre = provider.config?.nombreActivo ?? 'reporte';
     final filename = 'balanceo_${nombre.replaceAll(' ', '_')}.pdf';
-    await Printing.sharePdf(bytes: bytes, filename: filename);
+    
+    final xFile = XFile.fromData(
+      bytes,
+      name: filename,
+      mimeType: 'application/pdf',
+    );
+    await Share.shareXFiles([xFile], text: 'Reporte de Balanceo - $nombre');
   }
 
   // ── Guardar en almacenamiento local ───────────────────────────────────────
   static Future<String> guardarReporte(BalanceoProvider provider) async {
     final bytes = await generarReporte(provider);
     final nombre = provider.config?.nombreActivo ?? 'reporte';
-    final filename = 'balanceo_${nombre.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final baseName = 'balanceo_${nombre.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}';
 
-    Directory dir;
-    if (Platform.isAndroid) {
-      dir = (await getExternalStorageDirectory()) ?? await getApplicationDocumentsDirectory();
-    } else {
-      dir = await getApplicationDocumentsDirectory();
-    }
-
-    final file = File('${dir.path}/$filename');
-    await file.writeAsBytes(bytes);
-    return file.path;
+    // file_saver guarda nativamente en la carpeta "Descargas" en Android (Downloads) 
+    // y abre un cuadro de diálogo en desktop/iOS para máxima seguridad y conveniencia.
+    final path = await FileSaver.instance.saveFile(
+      name: baseName,
+      bytes: bytes,
+      ext: 'pdf',
+      mimeType: MimeType.pdf,
+    );
+    
+    return path;
   }
 
   // ── Función legacy para compatibilidad ───────────────────────────────────
