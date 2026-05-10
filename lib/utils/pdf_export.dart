@@ -386,11 +386,11 @@ class PdfExport {
     // file_saver guarda nativamente en la carpeta "Descargas" en Android (Downloads) 
     // y abre un cuadro de diálogo en desktop/iOS para máxima seguridad y conveniencia.
     final path = await FileSaver.instance.saveFile(
-      name: baseName,
+      name: '$baseName.pdf',
       bytes: bytes,
-      ext: 'pdf',
       mimeType: MimeType.pdf,
     );
+
     
     return path;
   }
