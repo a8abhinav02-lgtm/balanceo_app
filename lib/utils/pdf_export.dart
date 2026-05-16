@@ -75,10 +75,10 @@ class PdfExport {
 
   static pw.Widget _vectorFila(
           String label, Complejo v, String unidad, pw.Font font,
-          {pw.Font? fontBold}) =>
+          {pw.Font? fontBold, String suffix = ''}) =>
       _fila(
         label,
-        '${v.modulo.toStringAsFixed(3)} $unidad  @  ${v.anguloGrados.toStringAsFixed(2)}°',
+        '${v.modulo.toStringAsFixed(3)} $unidad  @  ${v.anguloGrados.toStringAsFixed(2)}°$suffix',
         font,
         fontBold: fontBold,
       );
@@ -259,13 +259,19 @@ class PdfExport {
           _sectionTitle('5. Coeficientes de Influencia (H)', font),
           if (!es2Planos && provider.coeficiente1 != null) ...[
             _fila('Sensor de cálculo', provider.usarSensorX ? 'Sensor X' : 'Sensor Y', font),
-            _vectorFila('H₁', provider.coeficiente1!, '$unidad/g', font, fontBold: fontBold),
+            _vectorFila('H₁', provider.coeficiente1!, '$unidad/g', font, 
+                fontBold: fontBold,
+                suffix: (provider.coeficiente1!.anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
           ],
           if (es2Planos && provider.matrizCoeficientes != null) ...[
-            _vectorFila('H₁₁', provider.matrizCoeficientes![0][0], '$unidad/g', font),
-            _vectorFila('H₁₂', provider.matrizCoeficientes![0][1], '$unidad/g', font),
-            _vectorFila('H₂₁', provider.matrizCoeficientes![1][0], '$unidad/g', font),
-            _vectorFila('H₂₂', provider.matrizCoeficientes![1][1], '$unidad/g', font),
+            _vectorFila('H₁₁', provider.matrizCoeficientes![0][0], '$unidad/g', font,
+                suffix: (provider.matrizCoeficientes![0][0].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
+            _vectorFila('H₁₂', provider.matrizCoeficientes![0][1], '$unidad/g', font,
+                suffix: (provider.matrizCoeficientes![0][1].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
+            _vectorFila('H₂₁', provider.matrizCoeficientes![1][0], '$unidad/g', font,
+                suffix: (provider.matrizCoeficientes![1][0].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
+            _vectorFila('H₂₂', provider.matrizCoeficientes![1][1], '$unidad/g', font,
+                suffix: (provider.matrizCoeficientes![1][1].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
           ],
 
           // ── 6. Masa Correctora ───────────────────────────────────────────
