@@ -131,17 +131,20 @@ class PolarPlot extends StatelessWidget {
               }),
             ),
           ),
-          // Polar chart
           AspectRatio(
             aspectRatio: 1,
-            child: CustomPaint(
-              painter: _PolarPainter(
-                vectores: vectores,
-                colores: colores,
-                etiquetas: etiquetas,
-                maxRadio: maxRadio,
-                config: config,
-                masas: masas,
+            child: Semantics(
+              label: 'Gráfico polar de análisis vibracional. Vectores mostrados: ${vectores.length}. Masas mostradas: ${masas.length}.',
+              image: true,
+              child: CustomPaint(
+                painter: _PolarPainter(
+                  vectores: vectores,
+                  colores: colores,
+                  etiquetas: etiquetas,
+                  maxRadio: maxRadio,
+                  config: config,
+                  masas: masas,
+                ),
               ),
             ),
           ),

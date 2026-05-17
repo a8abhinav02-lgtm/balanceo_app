@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/balanceo_provider.dart';
 import '../models/rotor_config.dart';
+import '../utils/formatters.dart';
 import 'guia_screen.dart';
 
 import '../widgets/polar_plot.dart';
@@ -119,8 +120,6 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Configuración del Rotor'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline),
@@ -174,7 +173,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
 
             const Text('Técnico responsable', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 2),
-            const Text('Aparece en el reporte PDF', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const Text('Aparece en el reporte PDF', style: TextStyle(fontSize: 11, color: Color(0xFF616161))), // grey.shade700
             const SizedBox(height: 8),
             TextFormField(
               controller: _tecnicoController,
@@ -189,9 +188,9 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
             const Text('Sentido de giro', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             SegmentedButton<SentidoGiro>(
-              segments: const [
-                ButtonSegment(value: SentidoGiro.antihorario, label: Text('Antihorario')),
-                ButtonSegment(value: SentidoGiro.horario, label: Text('Horario')),
+              segments: [
+                ButtonSegment(value: SentidoGiro.antihorario, label: Semantics(selected: _sentido == SentidoGiro.antihorario, child: const Text('Antihorario'))),
+                ButtonSegment(value: SentidoGiro.horario, label: Semantics(selected: _sentido == SentidoGiro.horario, child: const Text('Horario'))),
               ],
               selected: {_sentido},
               onSelectionChanged: (set) => setState(() => _sentido = set.first),
@@ -201,9 +200,9 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
             const Text('Tipo de rotor', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             SegmentedButton<TipoRotor>(
-              segments: const [
-                ButtonSegment(value: TipoRotor.continuo, label: Text('Continuo')),
-                ButtonSegment(value: TipoRotor.discreto, label: Text('Discreto')),
+              segments: [
+                ButtonSegment(value: TipoRotor.continuo, label: Semantics(selected: _tipo == TipoRotor.continuo, child: const Text('Continuo'))),
+                ButtonSegment(value: TipoRotor.discreto, label: Semantics(selected: _tipo == TipoRotor.discreto, child: const Text('Discreto'))),
               ],
               selected: {_tipo},
               onSelectionChanged: (set) => setState(() => _tipo = set.first),
@@ -231,9 +230,9 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
               const Text('Sentido de numeración de álabes', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(value: false, label: Text('Antihorario')),
-                  ButtonSegment(value: true, label: Text('Horario')),
+                segments: [
+                  ButtonSegment(value: false, label: Semantics(selected: !_numeracionHoraria, child: const Text('Antihorario'))),
+                  ButtonSegment(value: true, label: Semantics(selected: _numeracionHoraria, child: const Text('Horario'))),
                 ],
                 selected: {_numeracionHoraria},
                 onSelectionChanged: (set) => setState(() => _numeracionHoraria = set.first),
@@ -245,6 +244,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
               key: ValueKey('keyphasor_${_assetController.text}'),
               initialValue: _keyphasor.toString(),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [AngleInputFormatter()],
               decoration: const InputDecoration(labelText: 'Ángulo keyphasor (°)', border: OutlineInputBorder()),
               onChanged: (val) => setState(() => _keyphasor = double.tryParse(val) ?? 0),
             ),
@@ -257,6 +257,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                     key: ValueKey('sensorX_${_assetController.text}'),
                     initialValue: _sensorX.toString(),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [AngleInputFormatter()],
                     decoration: const InputDecoration(labelText: 'Sensor X (°)', border: OutlineInputBorder()),
                     onChanged: (val) => setState(() => _sensorX = double.tryParse(val) ?? 0),
                   ),
@@ -267,6 +268,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                     key: ValueKey('sensorY_${_assetController.text}'),
                     initialValue: _sensorY.toString(),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [AngleInputFormatter()],
                     decoration: const InputDecoration(labelText: 'Sensor Y (°)', border: OutlineInputBorder()),
                     onChanged: (val) => setState(() => _sensorY = double.tryParse(val) ?? 0),
                   ),
@@ -277,7 +279,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
 
             const Text('Planos de corrección', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 2),
-            const Text('Número de puntos de colocación de masa en el rotor', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const Text('Número de puntos de colocación de masa en el rotor', style: TextStyle(fontSize: 11, color: Color(0xFF616161))), // grey.shade700
             const SizedBox(height: 8),
             SegmentedButton<int>(
               segments: const [
@@ -323,8 +325,8 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
             const SizedBox(height: 8),
             Card(
               elevation: 0,
-              color: Colors.blue.shade50.withAlpha(100),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.blue.shade100)),
+              color: Colors.blueGrey.shade50.withAlpha(100),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.blueGrey.shade100)),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Center(
@@ -386,7 +388,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.amber.shade700,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),

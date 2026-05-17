@@ -21,9 +21,19 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Balanceo por Coeficientes',
         theme: ThemeData(
-          primarySwatch: Colors.blue,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.blueGrey,
+            primary: Colors.blueGrey.shade900,
+            secondary: Colors.amber.shade700,
+          ),
+          scaffoldBackgroundColor: Colors.grey.shade50,
+          appBarTheme: AppBarTheme(
+            backgroundColor: Colors.blueGrey.shade900,
+            foregroundColor: Colors.white,
+          ),
           useMaterial3: true,
         ),
+
         initialRoute: '/',
         routes: {
           '/': (context) => const ConfiguracionScreen(),

@@ -18,7 +18,6 @@ class GuiaScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Guía de Operación', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.blue.shade50,
       ),
       body: FutureBuilder<String>(
         future: _loadGuia(),
@@ -33,14 +32,14 @@ class GuiaScreen extends StatelessWidget {
           return Markdown(
             data: snapshot.data!,
             styleSheet: MarkdownStyleSheet(
-              h1: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 24),
+              h1: TextStyle(color: Colors.blueGrey.shade900, fontWeight: FontWeight.bold, fontSize: 24),
               h2: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 20),
               h3: const TextStyle(color: Colors.black54, fontWeight: FontWeight.bold, fontSize: 18),
               p: const TextStyle(fontSize: 16, height: 1.5),
               listBullet: const TextStyle(fontSize: 16),
               code: TextStyle(
-                backgroundColor: Colors.blue.shade50,
-                color: Colors.blue.shade900,
+                backgroundColor: Colors.amber.shade100,
+                color: Colors.blueGrey.shade900,
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
               ),

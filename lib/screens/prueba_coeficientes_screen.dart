@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/complejo.dart';
 import '../providers/balanceo_provider.dart';
+import '../utils/formatters.dart';
 import 'guia_screen.dart';
 
 
@@ -73,8 +74,6 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(es2Planos ? 'Prueba Coeficientes - P$_paso' : 'Prueba Coeficientes'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline),
@@ -254,9 +253,11 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
   }
 
   Widget _buildCampo(String label, TextEditingController controller) {
+    final isAngulo = label.toLowerCase().contains('fase') || label.toLowerCase().contains('ángulo');
     return TextFormField(
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: isAngulo ? [AngleInputFormatter()] : [],
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

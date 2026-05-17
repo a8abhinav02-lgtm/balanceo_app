@@ -200,8 +200,6 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
         title: Text(esRefinamiento
             ? 'Resultados - Iteración $iteracion'
             : 'Resultados del Balanceo'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline),
@@ -315,21 +313,23 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_left),
+                  TextButton.icon(
+                    icon: const Icon(Icons.arrow_back_ios, size: 16),
+                    label: const Text('Anterior'),
                     onPressed: _currentPage == 0 ? null : () => _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut),
                   ),
                   Expanded(
                     child: Text(
-                      '${_currentPage + 1}/${pages.length} — ${pageTitles[_currentPage]}',
+                      '${_currentPage + 1}/${pages.length} \n ${pageTitles[_currentPage]}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 13),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.arrow_right),
+                  TextButton.icon(
+                    icon: const Icon(Icons.arrow_forward_ios, size: 16),
+                    label: const Text('Siguiente'),
                     onPressed: _currentPage == pages.length - 1 ? null : () => _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut),
                   ),
                 ],

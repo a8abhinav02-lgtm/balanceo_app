@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/complejo.dart';
 import '../providers/balanceo_provider.dart';
 import '../widgets/polar_plot.dart';
+import '../utils/formatters.dart';
 import 'guia_screen.dart';
 
 
@@ -106,8 +107,6 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Medición Inicial'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline),
@@ -148,6 +147,7 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
               controller: _fase1Controller,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [AngleInputFormatter()],
               decoration: const InputDecoration(
                   labelText: 'Fase (°)', border: OutlineInputBorder()),
               validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
@@ -174,6 +174,7 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
               controller: _fase2Controller,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [AngleInputFormatter()],
               decoration: const InputDecoration(
                   labelText: 'Fase (°)', border: OutlineInputBorder()),
               validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
