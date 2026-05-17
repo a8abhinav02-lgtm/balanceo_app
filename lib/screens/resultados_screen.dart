@@ -5,6 +5,8 @@ import '../widgets/polar_plot.dart';
 import '../widgets/resultado_card.dart';
 import '../models/complejo.dart';
 import '../utils/pdf_export.dart';
+import 'guia_screen.dart';
+
 
 class ResultadosScreen extends StatefulWidget {
   const ResultadosScreen({super.key});
@@ -192,12 +194,20 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(esRefinamiento
-            ? 'Resultados — Iteración $iteracion'
+            ? 'Resultados - Iteración $iteracion'
             : 'Resultados del Balanceo'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'Guía de Operación',
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const GuiaScreen()));
+            },
+          ),
           PopupMenuButton<String>(
+
             icon: const Icon(Icons.picture_as_pdf),
             tooltip: 'Reporte PDF',
             onSelected: (value) async {

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/complejo.dart';
 import '../providers/balanceo_provider.dart';
+import 'guia_screen.dart';
+
 
 class PruebaCoeficientesScreen extends StatefulWidget {
   const PruebaCoeficientesScreen({super.key});
@@ -73,7 +75,17 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
         title: Text(es2Planos ? 'Prueba Coeficientes - P$_paso' : 'Prueba Coeficientes'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'Guía de Operación',
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const GuiaScreen()));
+            },
+          ),
+        ],
       ),
+
       body: Form(
         key: _formKey,
         child: ListView(

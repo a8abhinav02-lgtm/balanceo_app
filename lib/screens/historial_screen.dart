@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/balanceo_provider.dart';
+import 'guia_screen.dart';
+
 
 class HistorialScreen extends StatelessWidget {
   const HistorialScreen({super.key});
@@ -15,7 +17,17 @@ class HistorialScreen extends StatelessWidget {
         title: const Text('Historial de Balanceo'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'Guía de Operación',
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const GuiaScreen()));
+            },
+          ),
+        ],
       ),
+
       body: provider.historial.isEmpty
           ? const Center(child: Text('No hay iteraciones guardadas'))
           : ListView.builder(

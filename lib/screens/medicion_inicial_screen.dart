@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../models/complejo.dart';
 import '../providers/balanceo_provider.dart';
 import '../widgets/polar_plot.dart';
+import 'guia_screen.dart';
+
 
 class MedicionInicialScreen extends StatefulWidget {
   const MedicionInicialScreen({super.key});
@@ -105,7 +107,17 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
         title: const Text('Medición Inicial'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: 'Guía de Operación',
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const GuiaScreen()));
+            },
+          ),
+        ],
       ),
+
       body: Form(
         key: _formKey,
         child: ListView(
