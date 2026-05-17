@@ -141,185 +141,210 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text('Identificación del Activo', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Autocomplete<String>(
-              optionsBuilder: (TextEditingValue textEditingValue) {
-                if (textEditingValue.text == '') return const Iterable<String>.empty();
-                return provider.listaActivos.where((option) => option.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-              },
-              onSelected: (selection) {
-                _assetController.text = selection;
-                _cargarDatosActivo(selection);
-              },
-              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                if (_assetController.text.isNotEmpty && controller.text.isEmpty) controller.text = _assetController.text;
-                return TextFormField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre del Activo',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.precision_manufacturing),
-                  ),
-                  validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
-                  onChanged: (v) => setState(() => _assetController.text = v),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-            const Divider(),
-            const SizedBox(height: 16),
-
-            const Text('Técnico responsable', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 2),
-            const Text('Aparece en el reporte PDF', style: TextStyle(fontSize: 11, color: Color(0xFF616161))), // grey.shade700
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _tecnicoController,
-              decoration: const InputDecoration(
-                labelText: 'Nombre del técnico',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.engineering),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            const Text('Sentido de giro', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            SegmentedButton<SentidoGiro>(
-              segments: [
-                ButtonSegment(value: SentidoGiro.antihorario, label: Semantics(selected: _sentido == SentidoGiro.antihorario, child: const Text('Antihorario'))),
-                ButtonSegment(value: SentidoGiro.horario, label: Semantics(selected: _sentido == SentidoGiro.horario, child: const Text('Horario'))),
-              ],
-              selected: {_sentido},
-              onSelectionChanged: (set) => setState(() => _sentido = set.first),
-            ),
-            const SizedBox(height: 16),
-
-            const Text('Tipo de rotor', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            SegmentedButton<TipoRotor>(
-              segments: [
-                ButtonSegment(value: TipoRotor.continuo, label: Semantics(selected: _tipo == TipoRotor.continuo, child: const Text('Continuo'))),
-                ButtonSegment(value: TipoRotor.discreto, label: Semantics(selected: _tipo == TipoRotor.discreto, child: const Text('Discreto'))),
-              ],
-              selected: {_tipo},
-              onSelectionChanged: (set) => setState(() => _tipo = set.first),
-            ),
-            const SizedBox(height: 16),
-
-            if (_tipo == TipoRotor.discreto) ...[
-              TextFormField(
-                key: ValueKey('numAlabes_${_assetController.text}'),
-                initialValue: _numAlabes.toString(),
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Número de álabes', border: OutlineInputBorder()),
-                onChanged: (val) => setState(() => _numAlabes = int.tryParse(val) ?? 0),
-                validator: (v) => _tipo == TipoRotor.discreto && (int.tryParse(v ?? '0') ?? 0) <= 0 ? 'Requerido' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                key: ValueKey('anguloAlabe1_${_assetController.text}'),
-                initialValue: _anguloAlabe1.toString(),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Ángulo del Álabe #1 (°)', border: OutlineInputBorder(), helperText: 'Referencia visual en el gráfico'),
-                onChanged: (val) => setState(() => _anguloAlabe1 = double.tryParse(val) ?? 0),
-              ),
-              const SizedBox(height: 16),
-              const Text('Sentido de numeración de álabes', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              SegmentedButton<bool>(
-                segments: [
-                  ButtonSegment(value: false, label: Semantics(selected: !_numeracionHoraria, child: const Text('Antihorario'))),
-                  ButtonSegment(value: true, label: Semantics(selected: _numeracionHoraria, child: const Text('Horario'))),
-                ],
-                selected: {_numeracionHoraria},
-                onSelectionChanged: (set) => setState(() => _numeracionHoraria = set.first),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            TextFormField(
-              key: ValueKey('keyphasor_${_assetController.text}'),
-              initialValue: _keyphasor.toString(),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [AngleInputFormatter()],
-              decoration: const InputDecoration(labelText: 'Ángulo keyphasor (°)', border: OutlineInputBorder()),
-              onChanged: (val) => setState(() => _keyphasor = double.tryParse(val) ?? 0),
-            ),
-            const SizedBox(height: 16),
-
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    key: ValueKey('sensorX_${_assetController.text}'),
-                    initialValue: _sensorX.toString(),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [AngleInputFormatter()],
-                    decoration: const InputDecoration(labelText: 'Sensor X (°)', border: OutlineInputBorder()),
-                    onChanged: (val) => setState(() => _sensorX = double.tryParse(val) ?? 0),
-                  ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Identificación del Activo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 16),
+                    Autocomplete<String>(
+                      optionsBuilder: (TextEditingValue textEditingValue) {
+                        if (textEditingValue.text == '') return const Iterable<String>.empty();
+                        return provider.listaActivos.where((option) => option.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+                      },
+                      onSelected: (selection) {
+                        _assetController.text = selection;
+                        _cargarDatosActivo(selection);
+                      },
+                      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                        if (_assetController.text.isNotEmpty && controller.text.isEmpty) controller.text = _assetController.text;
+                        return TextFormField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          decoration: const InputDecoration(
+                            labelText: 'Nombre del Activo',
+                            prefixIcon: Icon(Icons.precision_manufacturing),
+                          ),
+                          validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
+                          onChanged: (v) => setState(() => _assetController.text = v),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Técnico responsable', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    const Text('Aparece en el reporte PDF', style: TextStyle(fontSize: 11, color: Color(0xFF616161))), // grey.shade700
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _tecnicoController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nombre del técnico',
+                        prefixIcon: Icon(Icons.engineering),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    key: ValueKey('sensorY_${_assetController.text}'),
-                    initialValue: _sensorY.toString(),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [AngleInputFormatter()],
-                    decoration: const InputDecoration(labelText: 'Sensor Y (°)', border: OutlineInputBorder()),
-                    onChanged: (val) => setState(() => _sensorY = double.tryParse(val) ?? 0),
-                  ),
-                ),
-              ],
+              ),
             ),
             const SizedBox(height: 16),
 
-            const Text('Planos de corrección', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 2),
-            const Text('Número de puntos de colocación de masa en el rotor', style: TextStyle(fontSize: 11, color: Color(0xFF616161))), // grey.shade700
-            const SizedBox(height: 8),
-            SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 1, label: Text('1 plano')),
-                ButtonSegment(value: 2, label: Text('2 planos')),
-              ],
-              selected: {_numPlanos},
-              onSelectionChanged: (set) => setState(() => _numPlanos = set.first),
-            ),
-            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Parámetros del Rotor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 16),
+                    const Text('Sentido de giro', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    SegmentedButton<SentidoGiro>(
+                      segments: [
+                        ButtonSegment(value: SentidoGiro.antihorario, label: Semantics(selected: _sentido == SentidoGiro.antihorario, child: const Text('Antihorario'))),
+                        ButtonSegment(value: SentidoGiro.horario, label: Semantics(selected: _sentido == SentidoGiro.horario, child: const Text('Horario'))),
+                      ],
+                      selected: {_sentido},
+                      onSelectionChanged: (set) => setState(() => _sentido = set.first),
+                    ),
+                    const SizedBox(height: 16),
 
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
-                    key: ValueKey('limite_${_assetController.text}'),
-                    initialValue: _limiteVibracion.toString(),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Límite Objetivo', border: OutlineInputBorder()),
-                    onChanged: (val) => setState(() => _limiteVibracion = double.tryParse(val) ?? 50),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 3,
-                  child: SegmentedButton<UnidadVibracion>(
-                    segments: const [
-                      ButtonSegment(value: UnidadVibracion.micras, label: Text('µm')),
-                      ButtonSegment(value: UnidadVibracion.mils, label: Text('mils')),
+                    const Text('Tipo de rotor', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    SegmentedButton<TipoRotor>(
+                      segments: [
+                        ButtonSegment(value: TipoRotor.continuo, label: Semantics(selected: _tipo == TipoRotor.continuo, child: const Text('Continuo'))),
+                        ButtonSegment(value: TipoRotor.discreto, label: Semantics(selected: _tipo == TipoRotor.discreto, child: const Text('Discreto'))),
+                      ],
+                      selected: {_tipo},
+                      onSelectionChanged: (set) => setState(() => _tipo = set.first),
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (_tipo == TipoRotor.discreto) ...[
+                      TextFormField(
+                        key: ValueKey('numAlabes_${_assetController.text}'),
+                        initialValue: _numAlabes.toString(),
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'Número de álabes'),
+                        onChanged: (val) => setState(() => _numAlabes = int.tryParse(val) ?? 0),
+                        validator: (v) => _tipo == TipoRotor.discreto && (int.tryParse(v ?? '0') ?? 0) <= 0 ? 'Requerido' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        key: ValueKey('anguloAlabe1_${_assetController.text}'),
+                        initialValue: _anguloAlabe1.toString(),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Ángulo del Álabe #1 (°)', helperText: 'Referencia visual en el gráfico'),
+                        onChanged: (val) => setState(() => _anguloAlabe1 = double.tryParse(val) ?? 0),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('Sentido de numeración de álabes', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      SegmentedButton<bool>(
+                        segments: [
+                          ButtonSegment(value: false, label: Semantics(selected: !_numeracionHoraria, child: const Text('Antihorario'))),
+                          ButtonSegment(value: true, label: Semantics(selected: _numeracionHoraria, child: const Text('Horario'))),
+                        ],
+                        selected: {_numeracionHoraria},
+                        onSelectionChanged: (set) => setState(() => _numeracionHoraria = set.first),
+                      ),
+                      const SizedBox(height: 16),
                     ],
-                    selected: {_unidadVibracion},
-                    onSelectionChanged: (set) => setState(() => _unidadVibracion = set.first),
-                  ),
+
+                    TextFormField(
+                      key: ValueKey('keyphasor_${_assetController.text}'),
+                      initialValue: _keyphasor.toString(),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [AngleInputFormatter()],
+                      decoration: const InputDecoration(labelText: 'Ángulo keyphasor (°)'),
+                      onChanged: (val) => setState(() => _keyphasor = double.tryParse(val) ?? 0),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            key: ValueKey('sensorX_${_assetController.text}'),
+                            initialValue: _sensorX.toString(),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            inputFormatters: [AngleInputFormatter()],
+                            decoration: const InputDecoration(labelText: 'Sensor X (°)'),
+                            onChanged: (val) => setState(() => _sensorX = double.tryParse(val) ?? 0),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            key: ValueKey('sensorY_${_assetController.text}'),
+                            initialValue: _sensorY.toString(),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            inputFormatters: [AngleInputFormatter()],
+                            decoration: const InputDecoration(labelText: 'Sensor Y (°)'),
+                            onChanged: (val) => setState(() => _sensorY = double.tryParse(val) ?? 0),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: 80),
+            const SizedBox(height: 16),
+
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Planos de corrección', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 2),
+                    const Text('Número de puntos de colocación de masa en el rotor', style: TextStyle(fontSize: 11, color: Color(0xFF616161))), // grey.shade700
+                    const SizedBox(height: 8),
+                    SegmentedButton<int>(
+                      segments: const [
+                        ButtonSegment(value: 1, label: Text('1 plano')),
+                        ButtonSegment(value: 2, label: Text('2 planos')),
+                      ],
+                      selected: {_numPlanos},
+                      onSelectionChanged: (set) => setState(() => _numPlanos = set.first),
+                    ),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            key: ValueKey('limite_${_assetController.text}'),
+                            initialValue: _limiteVibracion.toString(),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(labelText: 'Límite Objetivo'),
+                            onChanged: (val) => setState(() => _limiteVibracion = double.tryParse(val) ?? 50),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 3,
+                          child: SegmentedButton<UnidadVibracion>(
+                            segments: const [
+                              ButtonSegment(value: UnidadVibracion.micras, label: Text('µm')),
+                              ButtonSegment(value: UnidadVibracion.mils, label: Text('mils')),
+                            ],
+                            selected: {_unidadVibracion},
+                            onSelectionChanged: (set) => setState(() => _unidadVibracion = set.first),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 32),
-            const Divider(),
             const SizedBox(height: 16),
             const Text('Previsualización del Rotor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
@@ -388,8 +413,6 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber.shade700,
-              foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
             child: const Row(

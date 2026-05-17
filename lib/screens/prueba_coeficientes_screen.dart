@@ -239,8 +239,6 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
                   icon: Icon(es2Planos && _paso == 1 ? Icons.arrow_forward : Icons.calculate),
                   label: Text(es2Planos && _paso == 1 ? 'Siguiente' : 'Calcular'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),

@@ -267,8 +267,6 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
                   icon: const Icon(Icons.arrow_forward),
                   label: const Text('Siguiente'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),

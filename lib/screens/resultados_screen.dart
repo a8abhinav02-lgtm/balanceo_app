@@ -359,7 +359,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                       onPressed: () => _mostrarDialogoNuevaIteracion(context, provider),
                       icon: const Icon(Icons.refresh),
                       label: const Text('Nueva Iteración (Refinar)'),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 12)),
+                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
                     ),
                   ),
                 ],
@@ -396,7 +396,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                   },
                   icon: const Icon(Icons.save),
                   label: const Text('Guardar'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
+                  style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                 ),
               ),
             ],
@@ -468,7 +468,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
           ElevatedButton.icon(
             icon: const Icon(Icons.calculate),
             label: const Text('Recalcular'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(),
             onPressed: () {
               final v1 = Complejo.desdePolar(
                 double.tryParse(amp1Controller.text) ?? 0,
