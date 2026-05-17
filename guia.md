@@ -64,8 +64,9 @@ Si tras instalar la masa correctora la vibración residual no es satisfactoria:
 
 ## Concepto de Coeficientes de Influencia (Lag y Lead)
 
-El coeficiente de influencia ($H$) es una constante física del sistema que mide cómo responde el rotor a la adición de una masa de prueba. En el reporte final, este coeficiente se acompaña de una clasificación de desfase:
+El coeficiente de influencia (H) es una constante física del sistema que mide cómo responde el rotor a la adición de una masa de prueba. En el reporte final, este coeficiente se acompaña de una clasificación de desfase:
 
 - **(Lag - Retraso de Fase):** Ocurre cuando el ángulo de desfase del coeficiente está entre 0° y 180°. Es el comportamiento estándar en la mayoría de los rotores industriales; la respuesta física del rotor tiene un retraso o inercia respecto a la ubicación del peso.
 - **(Lead - Adelanto de Fase):** Se indica cuando el ángulo está entre 180° y 360°. Esto representa un adelanto de fase de la señal de respuesta, típico bajo condiciones dinámicas de resonancia o acoplamientos específicos del sensor.
+
 
