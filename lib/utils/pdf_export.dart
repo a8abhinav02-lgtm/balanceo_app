@@ -121,27 +121,27 @@ class PdfExport {
     if (esRef) {
       if (provider.v0_1_original != null) {
         vIni.add(provider.v0_1_original!);
-        cIni.add(const Color(0x55007BFF)); // blue semi-transparent
+        cIni.add(const Color(0x330D47A1)); // deep blue semi-transparent
         eIni.add('Sensor X (orig.)');
       }
       if (provider.v0_2_original != null) {
         vIni.add(provider.v0_2_original!);
-        cIni.add(const Color(0x55FF3B30));
+        cIni.add(const Color(0x33B71C1C)); // ruby red semi-transparent
         eIni.add('Sensor Y (orig.)');
       }
       if (provider.v0_1 != null) {
         vIni.add(provider.v0_1!);
-        cIni.add(const Color(0xFF007BFF));
+        cIni.add(const Color(0xFF0D47A1)); // deep blue solid
         eIni.add('Sensor X (residual)');
       }
       if (provider.v0_2 != null) {
         vIni.add(provider.v0_2!);
-        cIni.add(const Color(0xFFFF3B30));
+        cIni.add(const Color(0xFFB71C1C)); // ruby red solid
         eIni.add('Sensor Y (residual)');
       }
     } else {
-      if (provider.v0_1 != null) { vIni.add(provider.v0_1!); cIni.add(const Color(0xFF007BFF)); eIni.add('Sensor 1 (X)'); }
-      if (provider.v0_2 != null) { vIni.add(provider.v0_2!); cIni.add(const Color(0xFFFF3B30)); eIni.add('Sensor 2 (Y)'); }
+      if (provider.v0_1 != null) { vIni.add(provider.v0_1!); cIni.add(const Color(0xFF0D47A1)); eIni.add('Sensor 1 (X)'); }
+      if (provider.v0_2 != null) { vIni.add(provider.v0_2!); cIni.add(const Color(0xFFB71C1C)); eIni.add('Sensor 2 (Y)'); }
     }
 
     final double maxAmpIni = vIni.isEmpty ? 10.0
@@ -156,8 +156,9 @@ class PdfExport {
       final List<Complejo> vP1 = [...vIni.take(2)];
       final List<Color> cP1 = [...cIni.take(2)];
       final List<String> eP1 = [...eIni.take(2)];
-      if (provider.v1_1_temp != null) { vP1.add(provider.v1_1_temp!); cP1.add(const Color(0xFF56B4E9)); eP1.add('Sens X w/Prueba'); }
-      if (provider.v1_2_temp != null) { vP1.add(provider.v1_2_temp!); cP1.add(const Color(0xFFFFB3C1)); eP1.add('Sens Y w/Prueba'); }
+      if (provider.v1_1_temp != null) { vP1.add(provider.v1_1_temp!); cP1.add(const Color(0xFF00C8FF)); eP1.add('Sens X w/Prueba'); }
+      if (provider.v1_2_temp != null) { vP1.add(provider.v1_2_temp!); cP1.add(const Color(0xFFFF007F)); eP1.add('Sens Y w/Prueba'); }
+
       final List<MasaMarker> masasP1 = [];
       if (provider.mt1_temp != null) {
         masasP1.add(MasaMarker(masa: provider.mt1_temp!, color: const Color(0xFF555555), etiqueta: 'Masa Prueba 1'));

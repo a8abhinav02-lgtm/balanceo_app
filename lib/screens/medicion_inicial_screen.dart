@@ -85,14 +85,15 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
 
     if (v1Valid) {
       previewVectores.add(Complejo.desdePolar(_amp1!, _fase1!));
-      previewColores.add(Colors.blue);
+      previewColores.add(const Color(0xFF0D47A1));
       previewEtiquetas.add('V1 - Sensor X');
     }
     if (v2Valid) {
       previewVectores.add(Complejo.desdePolar(_amp2!, _fase2!));
-      previewColores.add(Colors.red);
+      previewColores.add(const Color(0xFFB71C1C));
       previewEtiquetas.add('V2 - Sensor Y');
     }
+
 
     // Scale: use the largest amplitude, or a sensible default when empty
     final double maxAmp = previewVectores.isEmpty

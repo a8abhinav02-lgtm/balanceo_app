@@ -46,8 +46,9 @@ El diagrama polar utiliza símbolos exactos para garantizar una interpretación 
   - **Círculo `(X)`:** Ubicación angular física del Sensor 1.
   - **Cuadrado `[Y]`:** Ubicación angular física del Sensor 2.
 - **Vectores de Vibración:** 
-  - **`V1` (Celeste):** Vibración medida en el plano del Sensor 1.
-  - **`V2` (Rojo):** Vibración medida en el plano del Sensor 2.
+  - **`V1` (Azul Eléctrico / Cian):** Sensor 1 (X) (Azul Eléctrico para la vibración inicial/residual; Cian brillante con peso de prueba).
+  - **`V2` (Rojo Rubí / Magenta):** Sensor 2 (Y) (Rojo Rubí para la vibración inicial/residual; Magenta/Rosado Neón con peso de prueba).
+
 - **Vectores de Masas:** 
   - **`M1` / `M2` (Gris/Verde):** Representan el peso de prueba o la masa correctora recomendada.
 - **Álabes (Círculos Azules):** Muestran la distribución de los álabes (ej. 1, 2, 3...) según el tipo de rotor configurado.

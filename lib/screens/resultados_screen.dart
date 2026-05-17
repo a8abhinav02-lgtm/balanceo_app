@@ -52,29 +52,30 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
       // Mostrar primero el vector original (estado sucio) con opacidad diferenciada
       if (provider.v0_1_original != null) {
         vIni.add(provider.v0_1_original!);
-        cIni.add(Colors.blue.withAlpha(100));
+        cIni.add(const Color(0xFF0D47A1).withAlpha(100));
         eIni.add('Sensor X (orig.)');
       }
       if (provider.v0_2_original != null) {
         vIni.add(provider.v0_2_original!);
-        cIni.add(Colors.red.withAlpha(100));
+        cIni.add(const Color(0xFFB71C1C).withAlpha(100));
         eIni.add('Sensor Y (orig.)');
       }
       // Luego el residual actual (más intenso)
       if (provider.v0_1 != null) {
         vIni.add(provider.v0_1!);
-        cIni.add(Colors.blue);
+        cIni.add(const Color(0xFF0D47A1));
         eIni.add('Sensor X (It.${iteracion - 1})');
       }
       if (provider.v0_2 != null) {
         vIni.add(provider.v0_2!);
-        cIni.add(Colors.red);
+        cIni.add(const Color(0xFFB71C1C));
         eIni.add('Sensor Y (It.${iteracion - 1})');
       }
     } else {
-      if (provider.v0_1 != null) { vIni.add(provider.v0_1!); cIni.add(Colors.blue); eIni.add('Sensor 1 (X)'); }
-      if (provider.v0_2 != null) { vIni.add(provider.v0_2!); cIni.add(Colors.red); eIni.add('Sensor 2 (Y)'); }
+      if (provider.v0_1 != null) { vIni.add(provider.v0_1!); cIni.add(const Color(0xFF0D47A1)); eIni.add('Sensor 1 (X)'); }
+      if (provider.v0_2 != null) { vIni.add(provider.v0_2!); cIni.add(const Color(0xFFB71C1C)); eIni.add('Sensor 2 (Y)'); }
     }
+
 
     double maxAmpIni = vIni.isEmpty ? 10.0 : vIni.map((v) => v.modulo).reduce((a, b) => a > b ? a : b);
     pages.add(Center(child: PolarPlot(vectores: vIni, colores: cIni, etiquetas: eIni, maxRadio: maxAmpIni * 1.2)));
@@ -91,8 +92,8 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
           : List.from(vIni.take(2));  // solo v0_1 y v0_2 sin residuales
       final List<Color> baseCols = esRefinamiento
           ? [
-              if (provider.v0_1_original != null) Colors.blue.withAlpha(100),
-              if (provider.v0_2_original != null) Colors.red.withAlpha(100),
+              if (provider.v0_1_original != null) const Color(0xFF0D47A1).withAlpha(100),
+              if (provider.v0_2_original != null) const Color(0xFFB71C1C).withAlpha(100),
             ]
           : cIni.take(2).toList();
       final List<String> baseEtqs = esRefinamiento
@@ -106,8 +107,9 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
       List<Color> cP1 = List.from(baseCols);
       List<String> eP1 = List.from(baseEtqs);
 
-      if (provider.v1_1_temp != null) { vP1.add(provider.v1_1_temp!); cP1.add(Colors.lightBlue); eP1.add('Sens X w/Prueba'); }
-      if (provider.v1_2_temp != null) { vP1.add(provider.v1_2_temp!); cP1.add(Colors.pink); eP1.add('Sens Y w/Prueba'); }
+      if (provider.v1_1_temp != null) { vP1.add(provider.v1_1_temp!); cP1.add(const Color(0xFF00C8FF)); eP1.add('Sens X w/Prueba'); }
+      if (provider.v1_2_temp != null) { vP1.add(provider.v1_2_temp!); cP1.add(const Color(0xFFFF007F)); eP1.add('Sens Y w/Prueba'); }
+
 
       final List<MasaMarker> masasP1 = [];
       if (provider.mt1_temp != null) {
@@ -132,12 +134,12 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
             ];
       final List<Color> baseCols2 = esRefinamiento
           ? [
-              if (provider.v0_1_original != null) Colors.blue.withAlpha(100),
-              if (provider.v0_2_original != null) Colors.red.withAlpha(100),
+              if (provider.v0_1_original != null) const Color(0xFF0D47A1).withAlpha(100),
+              if (provider.v0_2_original != null) const Color(0xFFB71C1C).withAlpha(100),
             ]
           : [
-              if (provider.v0_1 != null) Colors.blue,
-              if (provider.v0_2 != null) Colors.red,
+              if (provider.v0_1 != null) const Color(0xFF0D47A1),
+              if (provider.v0_2 != null) const Color(0xFFB71C1C),
             ];
       final List<String> baseEtqs2 = esRefinamiento
           ? [
@@ -153,8 +155,9 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
       List<Color> cP2 = List.from(baseCols2);
       List<String> eP2 = List.from(baseEtqs2);
 
-      if (provider.v2_1_temp != null) { vP2.add(provider.v2_1_temp!); cP2.add(Colors.lightBlue); eP2.add('Sens X w/Prueba P2'); }
-      if (provider.v2_2_temp != null) { vP2.add(provider.v2_2_temp!); cP2.add(Colors.pink); eP2.add('Sens Y w/Prueba P2'); }
+      if (provider.v2_1_temp != null) { vP2.add(provider.v2_1_temp!); cP2.add(const Color(0xFF00C8FF)); eP2.add('Sens X w/Prueba P2'); }
+      if (provider.v2_2_temp != null) { vP2.add(provider.v2_2_temp!); cP2.add(const Color(0xFFFF007F)); eP2.add('Sens Y w/Prueba P2'); }
+
 
       final List<MasaMarker> masasP2 = [];
       if (provider.mt2_temp != null) {
@@ -173,14 +176,15 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
     List<String> eFin = [];
 
     if (esRefinamiento) {
-      if (provider.v0_1_original != null) { vFin.add(provider.v0_1_original!); cFin.add(Colors.blue.withAlpha(100)); eFin.add('Sensor X (orig.)'); }
-      if (provider.v0_2_original != null) { vFin.add(provider.v0_2_original!); cFin.add(Colors.red.withAlpha(100)); eFin.add('Sensor Y (orig.)'); }
-      if (provider.v0_1 != null) { vFin.add(provider.v0_1!); cFin.add(Colors.blue); eFin.add('Sensor X (It.${iteracion - 1})'); }
-      if (provider.v0_2 != null) { vFin.add(provider.v0_2!); cFin.add(Colors.red); eFin.add('Sensor Y (It.${iteracion - 1})'); }
+      if (provider.v0_1_original != null) { vFin.add(provider.v0_1_original!); cFin.add(const Color(0xFF0D47A1).withAlpha(100)); eFin.add('Sensor X (orig.)'); }
+      if (provider.v0_2_original != null) { vFin.add(provider.v0_2_original!); cFin.add(const Color(0xFFB71C1C).withAlpha(100)); eFin.add('Sensor Y (orig.)'); }
+      if (provider.v0_1 != null) { vFin.add(provider.v0_1!); cFin.add(const Color(0xFF0D47A1)); eFin.add('Sensor X (It.${iteracion - 1})'); }
+      if (provider.v0_2 != null) { vFin.add(provider.v0_2!); cFin.add(const Color(0xFFB71C1C)); eFin.add('Sensor Y (It.${iteracion - 1})'); }
     } else {
-      if (provider.v0_1 != null) { vFin.add(provider.v0_1!); cFin.add(Colors.blue); eFin.add('Sensor 1 (X)'); }
-      if (provider.v0_2 != null) { vFin.add(provider.v0_2!); cFin.add(Colors.red); eFin.add('Sensor 2 (Y)'); }
+      if (provider.v0_1 != null) { vFin.add(provider.v0_1!); cFin.add(const Color(0xFF0D47A1)); eFin.add('Sensor 1 (X)'); }
+      if (provider.v0_2 != null) { vFin.add(provider.v0_2!); cFin.add(const Color(0xFFB71C1C)); eFin.add('Sensor 2 (Y)'); }
     }
+
 
     final List<MasaMarker> masasCorr = [];
     if (m1 != null) { masasCorr.add(MasaMarker(masa: m1, color: Colors.green.shade700, etiqueta: 'Masa P1')); }
