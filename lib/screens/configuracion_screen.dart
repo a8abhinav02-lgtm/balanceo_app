@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/balanceo_provider.dart';
 import '../models/rotor_config.dart';
+import '../models/canal_medicion.dart';
 import '../utils/formatters.dart';
 import 'guia_screen.dart';
 
@@ -22,8 +23,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   late TipoRotor _tipo;
   late int _numAlabes;
   late double _keyphasor;
-  late double _sensorX;
-  late double _sensorY;
+  late List<CanalMedicion> _canales;
   late int _numPlanos;
   late double _limiteVibracion;
   
@@ -42,8 +42,8 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     _tipo = provider.config?.tipo ?? TipoRotor.continuo;
     _numAlabes = provider.config?.numAlabes ?? 0;
     _keyphasor = provider.config?.keyphasorAngulo ?? 0;
-    _sensorX = provider.config?.sensorXAngulo ?? 0;
-    _sensorY = provider.config?.sensorYAngulo ?? 90;
+    _canales = provider.config?.canales.map((c) => c.copy()).toList()
+        ?? CanalMedicion.defaultCanales();
     _numPlanos = provider.config?.numPlanos ?? 1;
     _limiteVibracion = provider.config?.limiteVibracion ?? 50;
     _anguloAlabe1 = provider.config?.anguloReferenciaAlabe1 ?? 0;
@@ -68,8 +68,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
           _tipo = provider.config!.tipo;
           _numAlabes = provider.config!.numAlabes;
           _keyphasor = provider.config!.keyphasorAngulo;
-          _sensorX = provider.config!.sensorXAngulo;
-          _sensorY = provider.config!.sensorYAngulo;
+          _canales = provider.config!.canales.map((c) => c.copy()).toList();
           _numPlanos = provider.config!.numPlanos;
           _limiteVibracion = provider.config!.limiteVibracion;
           _anguloAlabe1 = provider.config!.anguloReferenciaAlabe1;
@@ -263,31 +262,40 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            key: ValueKey('sensorX_${_assetController.text}'),
-                            initialValue: _sensorX.toString(),
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            inputFormatters: [AngleInputFormatter()],
-                            decoration: const InputDecoration(labelText: 'Sensor X (°)'),
-                            onChanged: (val) => setState(() => _sensorX = double.tryParse(val) ?? 0),
-                          ),
+                    const Text('Canales de medición', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    const Text('Tag y ángulo de cada sensor/posición de medición', style: TextStyle(fontSize: 11, color: Color(0xFF616161))),
+                    const SizedBox(height: 8),
+                    ...List.generate(_canales.length, (i) {
+                      final canal = _canales[i];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 80,
+                              child: TextFormField(
+                                key: ValueKey('tag_${i}_${_assetController.text}'),
+                                initialValue: canal.tag,
+                                decoration: InputDecoration(labelText: 'Tag ${i + 1}'),
+                                onChanged: (val) => setState(() => canal.tag = val.isNotEmpty ? val : '${i + 1}H'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                key: ValueKey('angulo_${i}_${_assetController.text}'),
+                                initialValue: canal.angulo.toString(),
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                inputFormatters: [AngleInputFormatter()],
+                                decoration: InputDecoration(labelText: 'Ángulo ${canal.tag} (°)'),
+                                onChanged: (val) => setState(() => canal.angulo = double.tryParse(val) ?? 0),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            key: ValueKey('sensorY_${_assetController.text}'),
-                            initialValue: _sensorY.toString(),
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            inputFormatters: [AngleInputFormatter()],
-                            decoration: const InputDecoration(labelText: 'Sensor Y (°)'),
-                            onChanged: (val) => setState(() => _sensorY = double.tryParse(val) ?? 0),
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -365,8 +373,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                       tipo: _tipo,
                       numAlabes: _numAlabes,
                       keyphasorAngulo: _keyphasor,
-                      sensorXAngulo: _sensorX,
-                      sensorYAngulo: _sensorY,
+                      canales: _canales.map((c) => c.copy()).toList(),
                       numPlanos: _numPlanos,
                       limiteVibracion: _limiteVibracion,
                       anguloReferenciaAlabe1: _anguloAlabe1,
@@ -397,8 +404,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                   tipo: _tipo,
                   numAlabes: _numAlabes,
                   keyphasorAngulo: _keyphasor,
-                  sensorXAngulo: _sensorX,
-                  sensorYAngulo: _sensorY,
+                  canales: _canales.map((c) => c.copy()).toList(),
                   numPlanos: _numPlanos,
                   limiteVibracion: _limiteVibracion,
                   anguloReferenciaAlabe1: _anguloAlabe1,
