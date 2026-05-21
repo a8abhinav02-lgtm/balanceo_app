@@ -13,14 +13,14 @@ Defina las características físicas antes de medir:
 - **Tipo de Rotor:** 
   - *Continuo:* Balanceo basado en grados (0° a 360°).
   - *Discreto:* Para rotores con álabes. Permite configurar el ángulo del Álabe #1 y si la numeración es Horaria o Antihoraria.
-- **Sensores:** Ubicación angular física de los sensores X e Y.
+- **Sensores:** Ubicación angular física de los canales de medición (con tags dinámicos).
 
 ### 2. Medición Inicial (Diagnóstico)
-Mida la vibración base a velocidad nominal. Se capturan datos de ambos sensores (X/Y) para tener un panorama completo del desbalance inicial.
+Mida la vibración base a velocidad nominal. Se capturan datos de ambos canales para tener un panorama completo del desbalance inicial.
 
 ### 3. Prueba de Coeficientes
 Instale un peso de prueba (`M1`) y mida la nueva vibración resultante (`V1` y `V2`).
-- **Dualidad:** Incluso en modo de 1 plano, la app solicita ambos sensores para monitorear el acoplamiento entre planos.
+- **Dualidad:** Incluso en modo de 1 plano, la app solicita mediciones de ambos canales para monitorear el acoplamiento entre planos.
 
 ### 4. Resultados y Evolución Vectorial
 La app calcula la **Masa Correctora** exacta. Los resultados se presentan en un carrusel comparativo:
@@ -43,11 +43,11 @@ El diagrama polar utiliza símbolos exactos para garantizar una interpretación 
 - **Flecha `GIRO` (Naranja):** Indica el sentido de rotación físico configurado por el usuario.
 - **Línea `KP` (Negra):** El Keyphasor. Es la marca óptica de referencia (fase = 0°).
 - **Indicadores de Sensores:** 
-  - **Círculo `(X)`:** Ubicación angular física del Sensor 1.
-  - **Cuadrado `[Y]`:** Ubicación angular física del Sensor 2.
+  - **Círculo:** Ubicación angular física del Canal 1 (ej: `1H`).
+  - **Cuadrado:** Ubicación angular física del Canal 2 (ej: `2H`).
 - **Vectores de Vibración:** 
-  - **`V1` (Azul Eléctrico / Cian):** Sensor 1 (X) (Azul Eléctrico para la vibración inicial/residual; Cian brillante con peso de prueba).
-  - **`V2` (Rojo Rubí / Magenta):** Sensor 2 (Y) (Rojo Rubí para la vibración inicial/residual; Magenta/Rosado Neón con peso de prueba).
+  - **`V1` (Azul Eléctrico / Cian):** Canal 1 (Azul Eléctrico para la vibración inicial/residual; Cian brillante con peso de prueba).
+  - **`V2` (Rojo Rubí / Magenta):** Canal 2 (Rojo Rubí para la vibración inicial/residual; Magenta/Rosado Neón con peso de prueba).
 
 - **Vectores de Masas:** 
   - **`M1` / `M2` (Gris/Verde):** Representan el peso de prueba o la masa correctora recomendada.

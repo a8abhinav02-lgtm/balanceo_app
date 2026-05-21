@@ -256,6 +256,9 @@ class _PolarPainter extends CustomPainter {
     canvas.drawLine(centro, Offset(kpx, kpy), kpPaint);
     _drawLabel(canvas, Offset(kpx, kpy - 12), 'KP', Colors.black, fontSize: 8, bold: true);
 
+    final tag1 = config != null && config!.canales.isNotEmpty ? config!.canales[0].tag : 'X';
+    final tag2 = config != null && config!.canales.length > 1 ? config!.canales[1].tag : 'Y';
+
     // ── Sensors ───────────────────────────────────────────────────────────
     final Paint sensorPaint = Paint()
       ..color = Colors.black87
@@ -265,14 +268,18 @@ class _PolarPainter extends CustomPainter {
     double sx = centerX + maxRadio * 1.2 * escala * cos(xAngRad);
     double sy = centerY + maxRadio * 1.2 * escala * sin(xAngRad);
     canvas.drawCircle(Offset(sx, sy), 7, sensorPaint);
-    _drawLabel(canvas, Offset(sx - 2, sy - 4), 'X', Colors.black, fontSize: 8, bold: true);
+    double lsx = centerX + (maxRadio * 1.2 * escala + 15) * cos(xAngRad);
+    double lsy = centerY + (maxRadio * 1.2 * escala + 15) * sin(xAngRad);
+    _drawLabel(canvas, Offset(lsx, lsy), tag1, Colors.black, fontSize: 8, bold: true, center: true);
 
     double yAngRad = absRad(config?.sensorYAngulo ?? 90);
     double syx = centerX + maxRadio * 1.2 * escala * cos(yAngRad);
     double syy = centerY + maxRadio * 1.2 * escala * sin(yAngRad);
     canvas.drawRect(
         Rect.fromCenter(center: Offset(syx, syy), width: 12, height: 12), sensorPaint);
-    _drawLabel(canvas, Offset(syx - 2, syy - 4), 'Y', Colors.black, fontSize: 8, bold: true);
+    double lsyx = centerX + (maxRadio * 1.2 * escala + 15) * cos(yAngRad);
+    double lsyy = centerY + (maxRadio * 1.2 * escala + 15) * sin(yAngRad);
+    _drawLabel(canvas, Offset(lsyx, lsyy), tag2, Colors.black, fontSize: 8, bold: true, center: true);
 
     // ── Blades ────────────────────────────────────────────────────────────
     if (config?.tipo == TipoRotor.discreto && config!.numAlabes > 0) {
@@ -379,7 +386,7 @@ class _PolarPainter extends CustomPainter {
   }
 
   void _drawLabel(Canvas canvas, Offset offset, String text, Color color,
-      {double fontSize = 11, bool bold = false}) {
+      {double fontSize = 11, bool bold = false, bool center = false}) {
     final tp = TextPainter(
       text: TextSpan(
         text: text,
@@ -390,7 +397,10 @@ class _PolarPainter extends CustomPainter {
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    tp.paint(canvas, offset);
+    final paintOffset = center
+        ? Offset(offset.dx - tp.width / 2, offset.dy - tp.height / 2)
+        : offset;
+    tp.paint(canvas, paintOffset);
   }
 
   @override

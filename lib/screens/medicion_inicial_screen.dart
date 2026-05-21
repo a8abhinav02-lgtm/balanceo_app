@@ -74,7 +74,9 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<BalanceoProvider>(context);
-
+    final config = provider.config;
+    final tag1 = config != null && config.canales.isNotEmpty ? config.canales[0].tag : 'Sensor 1 (X)';
+    final tag2 = config != null && config.canales.length > 1 ? config.canales[1].tag : 'Sensor 2 (Y)';
 
     // V1 — Sensor X
     final bool v1Valid = _amp1 != null && _amp1! > 0 && _fase1 != null;
@@ -87,12 +89,12 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
     if (v1Valid) {
       previewVectores.add(Complejo.desdePolar(_amp1!, _fase1!));
       previewColores.add(const Color(0xFF0D47A1));
-      previewEtiquetas.add('V1 - Sensor X');
+      previewEtiquetas.add('V1 - $tag1');
     }
     if (v2Valid) {
       previewVectores.add(Complejo.desdePolar(_amp2!, _fase2!));
       previewColores.add(const Color(0xFFB71C1C));
-      previewEtiquetas.add('V2 - Sensor Y');
+      previewEtiquetas.add('V2 - $tag2');
     }
 
 
@@ -129,8 +131,8 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
             ),
             const SizedBox(height: 24),
 
-            const Text('Sensor 1 (X)',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+            Text(tag1,
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
             const SizedBox(height: 8),
             TextFormField(
               controller: _amp1Controller,
@@ -155,9 +157,9 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
             const SizedBox(height: 32),
 
             // Sensor 2 (Y) — always visible
-            const Text('Sensor 2 (Y)',
+            Text(tag2,
                 style:
-                    TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                    const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
             const SizedBox(height: 8),
             TextFormField(
               controller: _amp2Controller,

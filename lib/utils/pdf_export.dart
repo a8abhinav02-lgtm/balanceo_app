@@ -1,8 +1,6 @@
-import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_saver/file_saver.dart';
 import '../providers/balanceo_provider.dart';
@@ -90,6 +88,8 @@ class PdfExport {
     final es2Planos = config?.numPlanos == 2;
     final iteracion = provider.iteracion;
     final unidad = config?.unidadStr ?? 'µm';
+    final tag1 = config != null && config.canales.isNotEmpty ? config.canales[0].tag : 'Sensor 1 (X)';
+    final tag2 = config != null && config.canales.length > 1 ? config.canales[1].tag : 'Sensor 2 (Y)';
 
     // ── Fuentes ──────────────────────────────────────────────────────────────
     // Usar Helvetica estándar. Se evitó GoogleFonts porque puede causar 
@@ -122,26 +122,26 @@ class PdfExport {
       if (provider.v0_1_original != null) {
         vIni.add(provider.v0_1_original!);
         cIni.add(const Color(0x330D47A1)); // deep blue semi-transparent
-        eIni.add('Sensor X (orig.)');
+        eIni.add('$tag1 (orig.)');
       }
       if (provider.v0_2_original != null) {
         vIni.add(provider.v0_2_original!);
         cIni.add(const Color(0x33B71C1C)); // ruby red semi-transparent
-        eIni.add('Sensor Y (orig.)');
+        eIni.add('$tag2 (orig.)');
       }
       if (provider.v0_1 != null) {
         vIni.add(provider.v0_1!);
         cIni.add(const Color(0xFF0D47A1)); // deep blue solid
-        eIni.add('Sensor X (residual)');
+        eIni.add('$tag1 (residual)');
       }
       if (provider.v0_2 != null) {
         vIni.add(provider.v0_2!);
         cIni.add(const Color(0xFFB71C1C)); // ruby red solid
-        eIni.add('Sensor Y (residual)');
+        eIni.add('$tag2 (residual)');
       }
     } else {
-      if (provider.v0_1 != null) { vIni.add(provider.v0_1!); cIni.add(const Color(0xFF0D47A1)); eIni.add('Sensor 1 (X)'); }
-      if (provider.v0_2 != null) { vIni.add(provider.v0_2!); cIni.add(const Color(0xFFB71C1C)); eIni.add('Sensor 2 (Y)'); }
+      if (provider.v0_1 != null) { vIni.add(provider.v0_1!); cIni.add(const Color(0xFF0D47A1)); eIni.add(tag1); }
+      if (provider.v0_2 != null) { vIni.add(provider.v0_2!); cIni.add(const Color(0xFFB71C1C)); eIni.add(tag2); }
     }
 
     final double maxAmpIni = vIni.isEmpty ? 10.0
@@ -156,8 +156,8 @@ class PdfExport {
       final List<Complejo> vP1 = [...vIni.take(2)];
       final List<Color> cP1 = [...cIni.take(2)];
       final List<String> eP1 = [...eIni.take(2)];
-      if (provider.v1_1_temp != null) { vP1.add(provider.v1_1_temp!); cP1.add(const Color(0xFF00C8FF)); eP1.add('Sens X w/Prueba'); }
-      if (provider.v1_2_temp != null) { vP1.add(provider.v1_2_temp!); cP1.add(const Color(0xFFFF007F)); eP1.add('Sens Y w/Prueba'); }
+      if (provider.v1_1_temp != null) { vP1.add(provider.v1_1_temp!); cP1.add(const Color(0xFF00C8FF)); eP1.add('$tag1 w/Prueba'); }
+      if (provider.v1_2_temp != null) { vP1.add(provider.v1_2_temp!); cP1.add(const Color(0xFFFF007F)); eP1.add('$tag2 w/Prueba'); }
 
       final List<MasaMarker> masasP1 = [];
       if (provider.mt1_temp != null) {
@@ -220,8 +220,8 @@ class PdfExport {
           if (config?.tipo == TipoRotor.discreto)
             _fila('Número de álabes', '${config?.numAlabes}', font),
           _fila('Ángulo Keyphasor', '${config?.keyphasorAngulo ?? 0}°', font),
-          _fila('Ángulo Sensor X', '${config?.sensorXAngulo ?? 0}°', font),
-          _fila('Ángulo Sensor Y', '${config?.sensorYAngulo ?? 90}°', font),
+          _fila('Ángulo $tag1', '${config?.sensorXAngulo ?? 0}°', font),
+          _fila('Ángulo $tag2', '${config?.sensorYAngulo ?? 90}°', font),
           _fila('Planos de corrección', '${config?.numPlanos ?? 1}', font),
           _fila('Unidad de vibración', config?.unidadStr ?? 'µm', font),
           _fila('Límite de vibración', '${config?.limiteVibracion ?? 50} ${config?.unidadStr ?? 'µm'}', font),
@@ -229,16 +229,16 @@ class PdfExport {
           // ── 3. Medición Inicial ──────────────────────────────────────────
           _sectionTitle(esRef ? '3. Vibración Residual (It.${iteracion - 1})' : '3. Medición Inicial', font),
           if (provider.v0_1 != null)
-            _vectorFila('Sensor 1 (X)', provider.v0_1!, unidad, font, fontBold: fontBold),
+            _vectorFila(tag1, provider.v0_1!, unidad, font, fontBold: fontBold),
           if (provider.v0_2 != null)
-            _vectorFila('Sensor 2 (Y)', provider.v0_2!, unidad, font, fontBold: fontBold),
+            _vectorFila(tag2, provider.v0_2!, unidad, font, fontBold: fontBold),
           if (esRef && provider.v0_1_original != null) ...[
             pw.SizedBox(height: 4),
             pw.Text('Valores originales (estado sucio):',
                 style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey600)),
-            _vectorFila('Sensor X (orig.)', provider.v0_1_original!, unidad, font),
+            _vectorFila('$tag1 (orig.)', provider.v0_1_original!, unidad, font),
             if (provider.v0_2_original != null)
-              _vectorFila('Sensor Y (orig.)', provider.v0_2_original!, unidad, font),
+              _vectorFila('$tag2 (orig.)', provider.v0_2_original!, unidad, font),
           ],
           pw.SizedBox(height: 8),
           pw.Center(child: pw.Image(imgIni, width: 280, height: 280)),
@@ -249,9 +249,9 @@ class PdfExport {
             if (provider.mt1_temp != null)
               _vectorFila('Masa de prueba P1', provider.mt1_temp!, 'g', font, fontBold: fontBold),
             if (provider.v1_1_temp != null)
-              _vectorFila('Sensor X c/prueba', provider.v1_1_temp!, unidad, font),
+              _vectorFila('$tag1 c/prueba', provider.v1_1_temp!, unidad, font),
             if (provider.v1_2_temp != null)
-              _vectorFila('Sensor Y c/prueba', provider.v1_2_temp!, unidad, font),
+              _vectorFila('$tag2 c/prueba', provider.v1_2_temp!, unidad, font),
             pw.SizedBox(height: 8),
             pw.Center(child: pw.Image(imgP1, width: 280, height: 280)),
           ],
@@ -259,7 +259,7 @@ class PdfExport {
           // ── 5. Coeficientes de Influencia ────────────────────────────────
           _sectionTitle('5. Coeficientes de Influencia (H)', font),
           if (!es2Planos && provider.coeficiente1 != null) ...[
-            _fila('Sensor de cálculo', provider.usarSensorX ? 'Sensor X' : 'Sensor Y', font),
+            _fila('Sensor de cálculo', provider.usarSensorX ? tag1 : tag2, font),
             _vectorFila('H1', provider.coeficiente1!, '$unidad/g', font, 
                 fontBold: fontBold,
                 suffix: (provider.coeficiente1!.anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
@@ -311,7 +311,7 @@ class PdfExport {
               headers: [
                 'It.', 'Masa P1 (g)', 'Ángulo P1 (°)',
                 if (es2Planos) 'Masa P2 (g)', if (es2Planos) 'Ángulo P2 (°)',
-                'Vib. S1 ($unidad)', if (es2Planos) 'Vib. S2 ($unidad)',
+                'Vib. $tag1 ($unidad)', if (es2Planos) 'Vib. $tag2 ($unidad)',
               ],
               data: [
                 for (final item in provider.historial)
@@ -377,7 +377,12 @@ class PdfExport {
       name: filename,
       mimeType: 'application/pdf',
     );
-    await Share.shareXFiles([xFile], text: 'Reporte de Balanceo - $nombre');
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [xFile],
+        text: 'Reporte de Balanceo - $nombre',
+      ),
+    );
   }
 
   // ── Guardar en almacenamiento local ───────────────────────────────────────

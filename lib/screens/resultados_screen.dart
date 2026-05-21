@@ -25,6 +25,9 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
     final es2Planos = provider.config?.numPlanos == 2;
     final iteracion = provider.iteracion;
     final esRefinamiento = iteracion > 1;
+    final config = provider.config;
+    final tag1 = config != null && config.canales.isNotEmpty ? config.canales[0].tag : 'Sensor 1 (X)';
+    final tag2 = config != null && config.canales.length > 1 ? config.canales[1].tag : 'Sensor 2 (Y)';
 
     Complejo? m1;
     Complejo? m2;
@@ -53,27 +56,27 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
       if (provider.v0_1_original != null) {
         vIni.add(provider.v0_1_original!);
         cIni.add(const Color(0xFF0D47A1).withAlpha(100));
-        eIni.add('Sensor X (orig.)');
+        eIni.add('$tag1 (orig.)');
       }
       if (provider.v0_2_original != null) {
         vIni.add(provider.v0_2_original!);
         cIni.add(const Color(0xFFB71C1C).withAlpha(100));
-        eIni.add('Sensor Y (orig.)');
+        eIni.add('$tag2 (orig.)');
       }
       // Luego el residual actual (más intenso)
       if (provider.v0_1 != null) {
         vIni.add(provider.v0_1!);
         cIni.add(const Color(0xFF0D47A1));
-        eIni.add('Sensor X (It.${iteracion - 1})');
+        eIni.add('$tag1 (It.${iteracion - 1})');
       }
       if (provider.v0_2 != null) {
         vIni.add(provider.v0_2!);
         cIni.add(const Color(0xFFB71C1C));
-        eIni.add('Sensor Y (It.${iteracion - 1})');
+        eIni.add('$tag2 (It.${iteracion - 1})');
       }
     } else {
-      if (provider.v0_1 != null) { vIni.add(provider.v0_1!); cIni.add(const Color(0xFF0D47A1)); eIni.add('Sensor 1 (X)'); }
-      if (provider.v0_2 != null) { vIni.add(provider.v0_2!); cIni.add(const Color(0xFFB71C1C)); eIni.add('Sensor 2 (Y)'); }
+      if (provider.v0_1 != null) { vIni.add(provider.v0_1!); cIni.add(const Color(0xFF0D47A1)); eIni.add(tag1); }
+      if (provider.v0_2 != null) { vIni.add(provider.v0_2!); cIni.add(const Color(0xFFB71C1C)); eIni.add(tag2); }
     }
 
 
@@ -89,7 +92,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
               if (provider.v0_1_original != null) provider.v0_1_original!,
               if (provider.v0_2_original != null) provider.v0_2_original!,
             ]
-          : List.from(vIni.take(2));  // solo v0_1 y v0_2 sin residuales
+          : List.from(vIni.take(2));  // solo v0_1 and v0_2 sin residuales
       final List<Color> baseCols = esRefinamiento
           ? [
               if (provider.v0_1_original != null) const Color(0xFF0D47A1).withAlpha(100),
@@ -98,8 +101,8 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
           : cIni.take(2).toList();
       final List<String> baseEtqs = esRefinamiento
           ? [
-              if (provider.v0_1_original != null) 'Sensor X (orig.)',
-              if (provider.v0_2_original != null) 'Sensor Y (orig.)',
+              if (provider.v0_1_original != null) '$tag1 (orig.)',
+              if (provider.v0_2_original != null) '$tag2 (orig.)',
             ]
           : eIni.take(2).toList();
 
@@ -107,8 +110,8 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
       List<Color> cP1 = List.from(baseCols);
       List<String> eP1 = List.from(baseEtqs);
 
-      if (provider.v1_1_temp != null) { vP1.add(provider.v1_1_temp!); cP1.add(const Color(0xFF00C8FF)); eP1.add('Sens X w/Prueba'); }
-      if (provider.v1_2_temp != null) { vP1.add(provider.v1_2_temp!); cP1.add(const Color(0xFFFF007F)); eP1.add('Sens Y w/Prueba'); }
+      if (provider.v1_1_temp != null) { vP1.add(provider.v1_1_temp!); cP1.add(const Color(0xFF00C8FF)); eP1.add('$tag1 w/Prueba'); }
+      if (provider.v1_2_temp != null) { vP1.add(provider.v1_2_temp!); cP1.add(const Color(0xFFFF007F)); eP1.add('$tag2 w/Prueba'); }
 
 
       final List<MasaMarker> masasP1 = [];
@@ -143,20 +146,20 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
             ];
       final List<String> baseEtqs2 = esRefinamiento
           ? [
-              if (provider.v0_1_original != null) 'Sensor X (orig.)',
-              if (provider.v0_2_original != null) 'Sensor Y (orig.)',
+              if (provider.v0_1_original != null) '$tag1 (orig.)',
+              if (provider.v0_2_original != null) '$tag2 (orig.)',
             ]
           : [
-              if (provider.v0_1 != null) 'Sensor 1 (X)',
-              if (provider.v0_2 != null) 'Sensor 2 (Y)',
+              if (provider.v0_1 != null) tag1,
+              if (provider.v0_2 != null) tag2,
             ];
 
       List<Complejo> vP2 = List.from(baseVecs2);
       List<Color> cP2 = List.from(baseCols2);
       List<String> eP2 = List.from(baseEtqs2);
 
-      if (provider.v2_1_temp != null) { vP2.add(provider.v2_1_temp!); cP2.add(const Color(0xFF00C8FF)); eP2.add('Sens X w/Prueba P2'); }
-      if (provider.v2_2_temp != null) { vP2.add(provider.v2_2_temp!); cP2.add(const Color(0xFFFF007F)); eP2.add('Sens Y w/Prueba P2'); }
+      if (provider.v2_1_temp != null) { vP2.add(provider.v2_1_temp!); cP2.add(const Color(0xFF00C8FF)); eP2.add('$tag1 w/Prueba P2'); }
+      if (provider.v2_2_temp != null) { vP2.add(provider.v2_2_temp!); cP2.add(const Color(0xFFFF007F)); eP2.add('$tag2 w/Prueba P2'); }
 
 
       final List<MasaMarker> masasP2 = [];
@@ -176,13 +179,13 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
     List<String> eFin = [];
 
     if (esRefinamiento) {
-      if (provider.v0_1_original != null) { vFin.add(provider.v0_1_original!); cFin.add(const Color(0xFF0D47A1).withAlpha(100)); eFin.add('Sensor X (orig.)'); }
-      if (provider.v0_2_original != null) { vFin.add(provider.v0_2_original!); cFin.add(const Color(0xFFB71C1C).withAlpha(100)); eFin.add('Sensor Y (orig.)'); }
-      if (provider.v0_1 != null) { vFin.add(provider.v0_1!); cFin.add(const Color(0xFF0D47A1)); eFin.add('Sensor X (It.${iteracion - 1})'); }
-      if (provider.v0_2 != null) { vFin.add(provider.v0_2!); cFin.add(const Color(0xFFB71C1C)); eFin.add('Sensor Y (It.${iteracion - 1})'); }
+      if (provider.v0_1_original != null) { vFin.add(provider.v0_1_original!); cFin.add(const Color(0xFF0D47A1).withAlpha(100)); eFin.add('$tag1 (orig.)'); }
+      if (provider.v0_2_original != null) { vFin.add(provider.v0_2_original!); cFin.add(const Color(0xFFB71C1C).withAlpha(100)); eFin.add('$tag2 (orig.)'); }
+      if (provider.v0_1 != null) { vFin.add(provider.v0_1!); cFin.add(const Color(0xFF0D47A1)); eFin.add('$tag1 (It.${iteracion - 1})'); }
+      if (provider.v0_2 != null) { vFin.add(provider.v0_2!); cFin.add(const Color(0xFFB71C1C)); eFin.add('$tag2 (It.${iteracion - 1})'); }
     } else {
-      if (provider.v0_1 != null) { vFin.add(provider.v0_1!); cFin.add(const Color(0xFF0D47A1)); eFin.add('Sensor 1 (X)'); }
-      if (provider.v0_2 != null) { vFin.add(provider.v0_2!); cFin.add(const Color(0xFFB71C1C)); eFin.add('Sensor 2 (Y)'); }
+      if (provider.v0_1 != null) { vFin.add(provider.v0_1!); cFin.add(const Color(0xFF0D47A1)); eFin.add(tag1); }
+      if (provider.v0_2 != null) { vFin.add(provider.v0_2!); cFin.add(const Color(0xFFB71C1C)); eFin.add(tag2); }
     }
 
 
@@ -412,6 +415,9 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
     final amp2Controller = TextEditingController();
     final fase2Controller = TextEditingController();
     final unidad = provider.config?.unidadStr ?? 'µm';
+    final config = provider.config;
+    final tag1 = config != null && config.canales.isNotEmpty ? config.canales[0].tag : 'Sensor 1 (X)';
+    final tag2 = config != null && config.canales.length > 1 ? config.canales[1].tag : 'Sensor 2 (Y)';
 
     showDialog(
       context: context,
@@ -433,7 +439,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                 style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 16),
-              const Text('Sensor 1 (X)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+              Text(tag1, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
               const SizedBox(height: 6),
               TextField(
                 controller: amp1Controller,
@@ -447,7 +453,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                 decoration: const InputDecoration(labelText: 'Fase (°)', border: OutlineInputBorder()),
               ),
               const SizedBox(height: 16),
-              const Text('Sensor 2 (Y)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+              Text(tag2, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
               const SizedBox(height: 6),
               TextField(
                 controller: amp2Controller,

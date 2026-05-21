@@ -70,6 +70,9 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
   Widget build(BuildContext context) {
     final provider = Provider.of<BalanceoProvider>(context);
     final es2Planos = provider.config?.numPlanos == 2;
+    final config = provider.config;
+    final tag1 = config != null && config.canales.isNotEmpty ? config.canales[0].tag : 'Sensor 1 (X)';
+    final tag2 = config != null && config.canales.length > 1 ? config.canales[1].tag : 'Sensor 2 (Y)';
 
     return Scaffold(
       appBar: AppBar(
@@ -98,14 +101,14 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
               _buildCampo('Ángulo de colocación (°)', _mtFaseController),
               const SizedBox(height: 24),
               
-              const Text('Medición Sensor 1 (X):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+              Text('Medición $tag1:', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
               const SizedBox(height: 8),
               _buildCampo('Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v1AmpController),
               const SizedBox(height: 12),
               _buildCampo('Fase (°)', _v1FaseController),
               const SizedBox(height: 20),
 
-              const Text('Medición Sensor 2 (Y):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+              Text('Medición $tag2:', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
               const SizedBox(height: 8),
               _buildCampo('Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v2AmpController),
               const SizedBox(height: 12),
@@ -126,16 +129,16 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
               ),
               const SizedBox(height: 8),
               SegmentedButton<bool>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: true,
-                    label: Text('Sensor X'),
-                    icon: Icon(Icons.circle, color: Colors.blue, size: 12),
+                    label: Text(tag1),
+                    icon: const Icon(Icons.circle, color: Colors.blue, size: 12),
                   ),
                   ButtonSegment(
                     value: false,
-                    label: Text('Sensor Y'),
-                    icon: Icon(Icons.square, color: Colors.red, size: 12),
+                    label: Text(tag2),
+                    icon: const Icon(Icons.square, color: Colors.red, size: 12),
                   ),
                 ],
                 selected: {_usarSensorX},
@@ -151,13 +154,13 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
                 const SizedBox(height: 20),
                 const Text('Mediciones con peso en P1:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                 const SizedBox(height: 8),
-                _buildCampo('Sensor 1 (X) - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v1_1AmpController),
+                _buildCampo('$tag1 - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v1_1AmpController),
                 const SizedBox(height: 12),
-                _buildCampo('Sensor 1 (X) - Fase (°)', _v1_1FaseController),
+                _buildCampo('$tag1 - Fase (°)', _v1_1FaseController),
                 const SizedBox(height: 12),
-                _buildCampo('Sensor 2 (Y) - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v1_2AmpController),
+                _buildCampo('$tag2 - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v1_2AmpController),
                 const SizedBox(height: 12),
-                _buildCampo('Sensor 2 (Y) - Fase (°)', _v1_2FaseController),
+                _buildCampo('$tag2 - Fase (°)', _v1_2FaseController),
               ] else ...[
                 const Text('PESO DE PRUEBA EN PLANO 2', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                 const SizedBox(height: 12),
@@ -167,13 +170,13 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
                 const SizedBox(height: 20),
                 const Text('Mediciones con peso en P2:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
                 const SizedBox(height: 8),
-                _buildCampo('Sensor 1 (X) - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v2_1AmpController),
+                _buildCampo('$tag1 - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v2_1AmpController),
                 const SizedBox(height: 12),
-                _buildCampo('Sensor 1 (X) - Fase (°)', _v2_1FaseController),
+                _buildCampo('$tag1 - Fase (°)', _v2_1FaseController),
                 const SizedBox(height: 12),
-                _buildCampo('Sensor 2 (Y) - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v2_2AmpController),
+                _buildCampo('$tag2 - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v2_2AmpController),
                 const SizedBox(height: 12),
-                _buildCampo('Sensor 2 (Y) - Fase (°)', _v2_2FaseController),
+                _buildCampo('$tag2 - Fase (°)', _v2_2FaseController),
               ],
             ],
             const SizedBox(height: 100),
