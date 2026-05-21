@@ -5,7 +5,6 @@ import '../providers/balanceo_provider.dart';
 import '../utils/formatters.dart';
 import 'guia_screen.dart';
 
-
 class PruebaCoeficientesScreen extends StatefulWidget {
   const PruebaCoeficientesScreen({super.key});
 
@@ -16,53 +15,76 @@ class PruebaCoeficientesScreen extends StatefulWidget {
 class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // Para 1 plano
+  // Peso de prueba 1 (o unico)
   final _mtModController = TextEditingController();
   final _mtFaseController = TextEditingController();
-  final _v1AmpController = TextEditingController();
-  final _v1FaseController = TextEditingController();
-  final _v2AmpController = TextEditingController(); // Sensor 2 en 1 plano
-  final _v2FaseController = TextEditingController(); // Sensor 2 en 1 plano
 
-  // Para 2 planos
-  final _mt1ModController = TextEditingController();
-  final _mt1FaseController = TextEditingController();
-  final _v1_1AmpController = TextEditingController();
-  final _v1_1FaseController = TextEditingController();
-  final _v1_2AmpController = TextEditingController();
-  final _v1_2FaseController = TextEditingController();
+  // Peso de prueba 2
   final _mt2ModController = TextEditingController();
   final _mt2FaseController = TextEditingController();
-  final _v2_1AmpController = TextEditingController();
-  final _v2_1FaseController = TextEditingController();
-  final _v2_2AmpController = TextEditingController();
-  final _v2_2FaseController = TextEditingController();
 
-  int _paso = 1; // 1: Plano1, 2: Plano2 (solo para 2 planos)
+  // Mediciones dinámicas
+  late List<TextEditingController> _v1AmpControllers;
+  late List<TextEditingController> _v1FaseControllers;
+  late List<TextEditingController> _v2AmpControllers;
+  late List<TextEditingController> _v2FaseControllers;
 
-  /// En modo 1 plano: true = usar Sensor X como base de cálculo, false = Sensor Y
-  bool _usarSensorX = true;
+  int _paso = 1; // 1: Plano 1, 2: Plano 2
+  int _numCanales = 0;
+
+  final List<Color> _colorsList = const [
+    Color(0xFF0D47A1), // Blue
+    Color(0xFFB71C1C), // Red
+    Color(0xFF2E7D32), // Green
+    Color(0xFFE65100), // Amber
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final provider = Provider.of<BalanceoProvider>(context, listen: false);
+    _numCanales = provider.config?.canales.length ?? 0;
+
+    _v1AmpControllers = List.generate(_numCanales, (_) => TextEditingController());
+    _v1FaseControllers = List.generate(_numCanales, (_) => TextEditingController());
+    _v2AmpControllers = List.generate(_numCanales, (_) => TextEditingController());
+    _v2FaseControllers = List.generate(_numCanales, (_) => TextEditingController());
+
+    // Pre-poblar si el proveedor ya tiene datos
+    if (provider.mt1Temp != null) {
+      _mtModController.text = provider.mt1Temp!.modulo.toString();
+      _mtFaseController.text = provider.mt1Temp!.anguloGrados.toString();
+    }
+    if (provider.mt2Temp != null) {
+      _mt2ModController.text = provider.mt2Temp!.modulo.toString();
+      _mt2FaseController.text = provider.mt2Temp!.anguloGrados.toString();
+    }
+    if (provider.v1Temp != null && provider.v1Temp!.length == _numCanales) {
+      for (int i = 0; i < _numCanales; i++) {
+        _v1AmpControllers[i].text = provider.v1Temp![i].modulo.toString();
+        _v1FaseControllers[i].text = provider.v1Temp![i].anguloGrados.toString();
+      }
+    }
+    if (provider.v2Temp != null && provider.v2Temp!.length == _numCanales) {
+      for (int i = 0; i < _numCanales; i++) {
+        _v2AmpControllers[i].text = provider.v2Temp![i].modulo.toString();
+        _v2FaseControllers[i].text = provider.v2Temp![i].anguloGrados.toString();
+      }
+    }
+  }
 
   @override
   void dispose() {
     _mtModController.dispose();
     _mtFaseController.dispose();
-    _v1AmpController.dispose();
-    _v1FaseController.dispose();
-    _v2AmpController.dispose();
-    _v2FaseController.dispose();
-    _mt1ModController.dispose();
-    _mt1FaseController.dispose();
-    _v1_1AmpController.dispose();
-    _v1_1FaseController.dispose();
-    _v1_2AmpController.dispose();
-    _v1_2FaseController.dispose();
     _mt2ModController.dispose();
     _mt2FaseController.dispose();
-    _v2_1AmpController.dispose();
-    _v2_1FaseController.dispose();
-    _v2_2AmpController.dispose();
-    _v2_2FaseController.dispose();
+    for (int i = 0; i < _numCanales; i++) {
+      _v1AmpControllers[i].dispose();
+      _v1FaseControllers[i].dispose();
+      _v2AmpControllers[i].dispose();
+      _v2FaseControllers[i].dispose();
+    }
     super.dispose();
   }
 
@@ -70,9 +92,6 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
   Widget build(BuildContext context) {
     final provider = Provider.of<BalanceoProvider>(context);
     final es2Planos = provider.config?.numPlanos == 2;
-    final config = provider.config;
-    final tag1 = config != null && config.canales.isNotEmpty ? config.canales[0].tag : 'Sensor 1 (X)';
-    final tag2 = config != null && config.canales.length > 1 ? config.canales[1].tag : 'Sensor 2 (Y)';
 
     return Scaffold(
       appBar: AppBar(
@@ -87,98 +106,88 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
           ),
         ],
       ),
-
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (!es2Planos) ...[
-              const Text('PESO DE PRUEBA', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-              const SizedBox(height: 12),
-              _buildCampo('Masa de prueba (g)', _mtModController),
-              const SizedBox(height: 12),
-              _buildCampo('Ángulo de colocación (°)', _mtFaseController),
-              const SizedBox(height: 24),
-              
-              Text('Medición $tag1:', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
-              const SizedBox(height: 8),
-              _buildCampo('Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v1AmpController),
-              const SizedBox(height: 12),
-              _buildCampo('Fase (°)', _v1FaseController),
-              const SizedBox(height: 20),
-
-              Text('Medición $tag2:', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-              const SizedBox(height: 8),
-              _buildCampo('Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v2AmpController),
-              const SizedBox(height: 12),
-              _buildCampo('Fase (°)', _v2FaseController),
-              const SizedBox(height: 28),
-
-              // ── Selector de vector para el cálculo ──────────────────────
-              const Divider(),
-              const SizedBox(height: 12),
-              const Text(
-                'Sensor de cálculo',
-                style: TextStyle(fontWeight: FontWeight.bold),
+            if (_paso == 1) ...[
+              Text(
+                es2Planos ? 'PESO DE PRUEBA EN PLANO 1' : 'PESO DE PRUEBA',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
               ),
-              const SizedBox(height: 4),
-              const Text(
-                '¿Con cuál sensor se calcula la masa correctora?',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              SegmentedButton<bool>(
-                segments: [
-                  ButtonSegment(
-                    value: true,
-                    label: Text(tag1),
-                    icon: const Icon(Icons.circle, color: Colors.blue, size: 12),
-                  ),
-                  ButtonSegment(
-                    value: false,
-                    label: Text(tag2),
-                    icon: const Icon(Icons.square, color: Colors.red, size: 12),
-                  ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(child: _buildCampo('Masa de prueba (g)', _mtModController)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildCampo('Ángulo de colocación (°)', _mtFaseController)),
                 ],
-                selected: {_usarSensorX},
-                onSelectionChanged: (val) => setState(() => _usarSensorX = val.first),
               ),
+              const SizedBox(height: 24),
+              Text(
+                es2Planos ? 'Mediciones con peso en P1:' : 'Mediciones con peso de prueba:',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
             ] else ...[
-              if (_paso == 1) ...[
-                const Text('PESO DE PRUEBA EN PLANO 1', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                const SizedBox(height: 12),
-                _buildCampo('Masa de prueba (g)', _mt1ModController),
-                const SizedBox(height: 12),
-                _buildCampo('Ángulo de colocación (°)', _mt1FaseController),
-                const SizedBox(height: 20),
-                const Text('Mediciones con peso en P1:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                const SizedBox(height: 8),
-                _buildCampo('$tag1 - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v1_1AmpController),
-                const SizedBox(height: 12),
-                _buildCampo('$tag1 - Fase (°)', _v1_1FaseController),
-                const SizedBox(height: 12),
-                _buildCampo('$tag2 - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v1_2AmpController),
-                const SizedBox(height: 12),
-                _buildCampo('$tag2 - Fase (°)', _v1_2FaseController),
-              ] else ...[
-                const Text('PESO DE PRUEBA EN PLANO 2', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                const SizedBox(height: 12),
-                _buildCampo('Masa de prueba (g)', _mt2ModController),
-                const SizedBox(height: 12),
-                _buildCampo('Ángulo de colocación (°)', _mt2FaseController),
-                const SizedBox(height: 20),
-                const Text('Mediciones con peso en P2:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                const SizedBox(height: 8),
-                _buildCampo('$tag1 - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v2_1AmpController),
-                const SizedBox(height: 12),
-                _buildCampo('$tag1 - Fase (°)', _v2_1FaseController),
-                const SizedBox(height: 12),
-                _buildCampo('$tag2 - Amplitud (${provider.config?.unidadStr ?? 'µm'})', _v2_2AmpController),
-                const SizedBox(height: 12),
-                _buildCampo('$tag2 - Fase (°)', _v2_2FaseController),
-              ],
+              const Text(
+                'PESO DE PRUEBA EN PLANO 2',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(child: _buildCampo('Masa de prueba (g)', _mt2ModController)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildCampo('Ángulo de colocación (°)', _mt2FaseController)),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Text('Mediciones con peso en P2:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
             ],
+
+            ...List.generate(_numCanales, (i) {
+              final tag = provider.config?.canales[i].tag ?? 'Canal ${i + 1}';
+              final color = _colorsList[i % _colorsList.length];
+              final ampController = (_paso == 1) ? _v1AmpControllers[i] : _v2AmpControllers[i];
+              final faseController = (_paso == 1) ? _v1FaseControllers[i] : _v2FaseControllers[i];
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tag,
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildCampo(
+                              'Amplitud (${provider.config?.unidadStr ?? 'µm'})',
+                              ampController,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildCampo(
+                              'Fase (°)',
+                              faseController,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
             const SizedBox(height: 100),
           ],
         ),
@@ -186,7 +195,7 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
       bottomNavigationBar: SafeArea(
         child: Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.white,
             boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, -2))],
           ),
@@ -213,27 +222,28 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
                     if (_formKey.currentState!.validate()) {
                       if (!es2Planos) {
                         final mt = Complejo.desdePolar(double.parse(_mtModController.text), double.parse(_mtFaseController.text));
-                        final v1X = Complejo.desdePolar(double.parse(_v1AmpController.text), double.parse(_v1FaseController.text));
-                        final v1Y = Complejo.desdePolar(double.parse(_v2AmpController.text), double.parse(_v2FaseController.text));
-
-                        provider.calcularCoeficientes1Plano(
-                          pesoPrueba: mt,
-                          v1X: v1X,
-                          v1Y: v1Y,
-                          usarX: _usarSensorX,
-                        );
+                        final List<Complejo> v1 = [];
+                        for (int i = 0; i < _numCanales; i++) {
+                          v1.add(Complejo.desdePolar(double.parse(_v1AmpControllers[i].text), double.parse(_v1FaseControllers[i].text)));
+                        }
+                        provider.calcularCoeficientes1Plano(mt, v1);
                         Navigator.pushNamed(context, '/resultados');
                       } else {
                         if (_paso == 1) {
                           setState(() => _paso = 2);
                         } else {
-                          final mt1 = Complejo.desdePolar(double.parse(_mt1ModController.text), double.parse(_mt1FaseController.text));
+                          final mt1 = Complejo.desdePolar(double.parse(_mtModController.text), double.parse(_mtFaseController.text));
                           final mt2 = Complejo.desdePolar(double.parse(_mt2ModController.text), double.parse(_mt2FaseController.text));
-                          final v1_1 = Complejo.desdePolar(double.parse(_v1_1AmpController.text), double.parse(_v1_1FaseController.text));
-                          final v1_2 = Complejo.desdePolar(double.parse(_v1_2AmpController.text), double.parse(_v1_2FaseController.text));
-                          final v2_1 = Complejo.desdePolar(double.parse(_v2_1AmpController.text), double.parse(_v2_1FaseController.text));
-                          final v2_2 = Complejo.desdePolar(double.parse(_v2_2AmpController.text), double.parse(_v2_2FaseController.text));
-                          provider.calcularCoeficientes2Planos(mt1, mt2, v1_1, v1_2, v2_1, v2_2);
+                          
+                          final List<Complejo> v1 = [];
+                          for (int i = 0; i < _numCanales; i++) {
+                            v1.add(Complejo.desdePolar(double.parse(_v1AmpControllers[i].text), double.parse(_v1FaseControllers[i].text)));
+                          }
+                          final List<Complejo> v2 = [];
+                          for (int i = 0; i < _numCanales; i++) {
+                            v2.add(Complejo.desdePolar(double.parse(_v2AmpControllers[i].text), double.parse(_v2FaseControllers[i].text)));
+                          }
+                          provider.calcularCoeficientes2Planos(mt1, mt2, v1, v2);
                           Navigator.pushNamed(context, '/resultados');
                         }
                       }
@@ -262,6 +272,7 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        isDense: true,
       ),
       validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
     );

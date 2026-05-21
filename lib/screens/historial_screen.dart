@@ -40,9 +40,19 @@ class HistorialScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Iteración ${item.iteracion}',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Iteración ${item.iteracion}',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        tooltip: 'Eliminar Iteración',
+                        onPressed: () => _confirmarEliminarIteracion(context, provider, index, item.iteracion),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   if (item.masaPlano1 != null)
@@ -58,6 +68,44 @@ class HistorialScreen extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _confirmarEliminarIteracion(BuildContext context, BalanceoProvider provider, int index, int numeroIteracion) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.red),
+            const SizedBox(width: 8),
+            Text('¿Eliminar Iteración $numeroIteracion?'),
+          ],
+        ),
+        content: const Text(
+          'Esta acción eliminará de forma permanente esta iteración del historial. Las iteraciones posteriores se reordenarán secuencialmente.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              provider.eliminarIteracion(index);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Iteración $numeroIteracion eliminada del historial')),
+              );
+            },
+            child: const Text('Eliminar'),
+          ),
+        ],
       ),
     );
   }

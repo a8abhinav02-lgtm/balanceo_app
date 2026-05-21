@@ -6,7 +6,6 @@ import '../widgets/polar_plot.dart';
 import '../utils/formatters.dart';
 import 'guia_screen.dart';
 
-
 class MedicionInicialScreen extends StatefulWidget {
   const MedicionInicialScreen({super.key});
 
@@ -16,89 +15,73 @@ class MedicionInicialScreen extends StatefulWidget {
 
 class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _amp1Controller = TextEditingController();
-  final _fase1Controller = TextEditingController();
-  final _amp2Controller = TextEditingController();
-  final _fase2Controller = TextEditingController();
+  late List<TextEditingController> _ampControllers;
+  late List<TextEditingController> _faseControllers;
+  int _numCanales = 0;
 
-  // Local state for real-time polar preview
-  double? _amp1, _fase1, _amp2, _fase2;
+  final List<Color> _colorsList = const [
+    Color(0xFF0D47A1), // Blue
+    Color(0xFFB71C1C), // Red
+    Color(0xFF2E7D32), // Green
+    Color(0xFFE65100), // Amber
+  ];
 
   @override
   void initState() {
     super.initState();
     final provider = Provider.of<BalanceoProvider>(context, listen: false);
+    _numCanales = provider.config?.canales.length ?? 0;
 
-    if (provider.v0_1 != null) {
-      _amp1Controller.text = provider.v0_1!.modulo.toString();
-      _fase1Controller.text = provider.v0_1!.anguloGrados.toString();
-      _amp1 = provider.v0_1!.modulo;
-      _fase1 = provider.v0_1!.anguloGrados;
-    }
-    if (provider.v0_2 != null) {
-      _amp2Controller.text = provider.v0_2!.modulo.toString();
-      _fase2Controller.text = provider.v0_2!.anguloGrados.toString();
-      _amp2 = provider.v0_2!.modulo;
-      _fase2 = provider.v0_2!.anguloGrados;
+    _ampControllers = List.generate(_numCanales, (_) => TextEditingController());
+    _faseControllers = List.generate(_numCanales, (_) => TextEditingController());
+
+    if (provider.v0 != null && provider.v0!.length == _numCanales) {
+      for (int i = 0; i < _numCanales; i++) {
+        _ampControllers[i].text = provider.v0![i].modulo.toString();
+        _faseControllers[i].text = provider.v0![i].anguloGrados.toString();
+      }
     }
 
-    // Attach listeners for real-time update
-    _amp1Controller.addListener(_updatePreview);
-    _fase1Controller.addListener(_updatePreview);
-    _amp2Controller.addListener(_updatePreview);
-    _fase2Controller.addListener(_updatePreview);
+    for (int i = 0; i < _numCanales; i++) {
+      _ampControllers[i].addListener(_updatePreview);
+      _faseControllers[i].addListener(_updatePreview);
+    }
   }
 
   void _updatePreview() {
-    setState(() {
-      _amp1 = double.tryParse(_amp1Controller.text);
-      _fase1 = double.tryParse(_fase1Controller.text);
-      _amp2 = double.tryParse(_amp2Controller.text);
-      _fase2 = double.tryParse(_fase2Controller.text);
-    });
+    setState(() {});
   }
 
   @override
   void dispose() {
-    _amp1Controller.removeListener(_updatePreview);
-    _fase1Controller.removeListener(_updatePreview);
-    _amp2Controller.removeListener(_updatePreview);
-    _fase2Controller.removeListener(_updatePreview);
-    _amp1Controller.dispose();
-    _fase1Controller.dispose();
-    _amp2Controller.dispose();
-    _fase2Controller.dispose();
+    for (int i = 0; i < _numCanales; i++) {
+      _ampControllers[i].removeListener(_updatePreview);
+      _faseControllers[i].removeListener(_updatePreview);
+      _ampControllers[i].dispose();
+      _faseControllers[i].dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<BalanceoProvider>(context);
-    final config = provider.config;
-    final tag1 = config != null && config.canales.isNotEmpty ? config.canales[0].tag : 'Sensor 1 (X)';
-    final tag2 = config != null && config.canales.length > 1 ? config.canales[1].tag : 'Sensor 2 (Y)';
-
-    // V1 — Sensor X
-    final bool v1Valid = _amp1 != null && _amp1! > 0 && _fase1 != null;
-    // V2 — Sensor Y (always collected)
-    final bool v2Valid = _amp2 != null && _amp2! > 0 && _fase2 != null;
+    
     final List<Complejo> previewVectores = [];
     final List<Color> previewColores = [];
     final List<String> previewEtiquetas = [];
 
-    if (v1Valid) {
-      previewVectores.add(Complejo.desdePolar(_amp1!, _fase1!));
-      previewColores.add(const Color(0xFF0D47A1));
-      previewEtiquetas.add('V1 - $tag1');
-    }
-    if (v2Valid) {
-      previewVectores.add(Complejo.desdePolar(_amp2!, _fase2!));
-      previewColores.add(const Color(0xFFB71C1C));
-      previewEtiquetas.add('V2 - $tag2');
+    for (int i = 0; i < _numCanales; i++) {
+      final amp = double.tryParse(_ampControllers[i].text);
+      final fase = double.tryParse(_faseControllers[i].text);
+      final tag = provider.config?.canales[i].tag ?? 'Sensor ${i + 1}';
+      if (amp != null && amp > 0 && fase != null) {
+        previewVectores.add(Complejo.desdePolar(amp, fase));
+        previewColores.add(_colorsList[i % _colorsList.length]);
+        previewEtiquetas.add(tag);
+      }
     }
 
-
-    // Scale: use the largest amplitude, or a sensible default when empty
     final double maxAmp = previewVectores.isEmpty
         ? 1.0
         : previewVectores
@@ -119,7 +102,6 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
           ),
         ],
       ),
-
       body: Form(
         key: _formKey,
         child: ListView(
@@ -131,65 +113,63 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
             ),
             const SizedBox(height: 24),
 
-            Text(tag1,
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _amp1Controller,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                  labelText:
-                      'Amplitud (${provider.config?.unidadStr ?? 'µm'})',
-                  border: const OutlineInputBorder()),
-              validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _fase1Controller,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [AngleInputFormatter()],
-              decoration: const InputDecoration(
-                  labelText: 'Fase (°)', border: OutlineInputBorder()),
-              validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
-            ),
-            const SizedBox(height: 32),
+            ...List.generate(_numCanales, (i) {
+              final tag = provider.config?.canales[i].tag ?? 'Canal ${i + 1}';
+              final color = _colorsList[i % _colorsList.length];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tag,
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _ampControllers[i],
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: InputDecoration(
+                                labelText: 'Amplitud (${provider.config?.unidadStr ?? 'µm'})',
+                                border: const OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _faseControllers[i],
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              inputFormatters: [AngleInputFormatter()],
+                              decoration: const InputDecoration(
+                                labelText: 'Fase (°)',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
 
-            // Sensor 2 (Y) — always visible
-            Text(tag2,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _amp2Controller,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                  labelText:
-                      'Amplitud (${provider.config?.unidadStr ?? 'µm'})',
-                  border: const OutlineInputBorder()),
-              validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _fase2Controller,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [AngleInputFormatter()],
-              decoration: const InputDecoration(
-                  labelText: 'Fase (°)', border: OutlineInputBorder()),
-              validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
-            ),
-            const SizedBox(height: 32),
-
-            // ── Real-time polar preview ─────────────────────────────────
             const Divider(),
             const SizedBox(height: 8),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.radar, size: 18, color: Colors.blue),
+                const Icon(Icons.radar, size: 18, color: Colors.blueGrey),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Column(
@@ -199,10 +179,10 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
                         'Previsualización polar',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade700,
+                              color: Colors.blueGrey.shade800,
                             ),
                       ),
-                      if (!v1Valid && !v2Valid)
+                      if (previewVectores.isEmpty)
                         const Padding(
                           padding: EdgeInsets.only(top: 2),
                           child: Text(
@@ -254,15 +234,13 @@ class _MedicionInicialScreenState extends State<MedicionInicialScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
-                      final amp1 = double.parse(_amp1Controller.text);
-                      final fase1 = double.parse(_fase1Controller.text);
-                      final Complejo s1 = Complejo.desdePolar(amp1, fase1);
-
-                      final amp2 = double.parse(_amp2Controller.text);
-                      final fase2 = double.parse(_fase2Controller.text);
-                      final Complejo s2 = Complejo.desdePolar(amp2, fase2);
-
-                      provider.setMedicionInicial(s1, s2);
+                      final List<Complejo> lecturas = [];
+                      for (int i = 0; i < _numCanales; i++) {
+                        final amp = double.parse(_ampControllers[i].text);
+                        final fase = double.parse(_faseControllers[i].text);
+                        lecturas.add(Complejo.desdePolar(amp, fase));
+                      }
+                      provider.setMedicionInicial(lecturas);
                       Navigator.pushNamed(context, '/prueba');
                     }
                   },

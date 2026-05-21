@@ -19,11 +19,15 @@ class CanalMedicion {
   /// "X" o "Y" (para sondas de proximidad).
   String direccion;
 
+  /// Peso o ponderación del canal (por defecto 1.0)
+  double peso;
+
   CanalMedicion({
     required this.tag,
     this.angulo = 0,
     this.idSoporte = 1,
     this.direccion = 'H',
+    this.peso = 1.0,
   });
 
   /// Crea una copia independiente del canal.
@@ -32,6 +36,7 @@ class CanalMedicion {
     angulo: angulo,
     idSoporte: idSoporte,
     direccion: direccion,
+    peso: peso,
   );
 
   Map<String, dynamic> toJson() => {
@@ -39,6 +44,7 @@ class CanalMedicion {
     'angulo': angulo,
     'idSoporte': idSoporte,
     'direccion': direccion,
+    'peso': peso,
   };
 
   factory CanalMedicion.fromJson(Map<String, dynamic> json) => CanalMedicion(
@@ -46,6 +52,7 @@ class CanalMedicion {
     angulo: (json['angulo'] as num? ?? 0).toDouble(),
     idSoporte: json['idSoporte'] as int? ?? 1,
     direccion: json['direccion'] as String? ?? 'H',
+    peso: (json['peso'] as num? ?? 1.0).toDouble(),
   );
 
   /// Canales por defecto para un nuevo activo (2 soportes, horizontal).

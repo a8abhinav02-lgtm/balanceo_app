@@ -79,6 +79,33 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     });
   }
 
+  void _agregarCanal() {
+    if (_canales.length >= 4) return;
+    setState(() {
+      int nextNum = _canales.length + 1;
+      int sop = (nextNum > 2) ? 2 : 1;
+      String tag = '$sop${nextNum % 2 == 1 ? 'H' : 'V'}';
+      _canales.add(CanalMedicion(
+        tag: tag,
+        angulo: 0.0,
+        idSoporte: sop,
+        direccion: nextNum % 2 == 1 ? 'H' : 'V',
+        peso: 1.0,
+      ));
+    });
+  }
+
+  void _onNumPlanosChanged(int numPlanos) {
+    setState(() {
+      _numPlanos = numPlanos;
+      if (numPlanos == 2 && _canales.length < 2) {
+        while (_canales.length < 2) {
+          _agregarCanal();
+        }
+      }
+    });
+  }
+
   Future<void> _confirmarBorrado(BuildContext context, BalanceoProvider provider) async {
     final nombre = _assetController.text;
     if (nombre.isEmpty) return;
@@ -262,35 +289,65 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    const Text('Canales de medición', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text('Canales de medición', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                        if (_canales.length < 4)
+                          IconButton(
+                            onPressed: _agregarCanal,
+                            icon: const Icon(Icons.add, color: Colors.blueAccent),
+                            tooltip: 'Agregar Canal',
+                          ),
+                      ],
+                    ),
                     const SizedBox(height: 2),
-                    const Text('Tag y ángulo de cada sensor/posición de medición', style: TextStyle(fontSize: 11, color: Color(0xFF616161))),
+                    const Text('Tag y ángulo de instalación de cada sensor/posición de medición', style: TextStyle(fontSize: 11, color: Color(0xFF616161))),
                     const SizedBox(height: 8),
                     ...List.generate(_canales.length, (i) {
                       final canal = _canales[i];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             SizedBox(
                               width: 80,
                               child: TextFormField(
                                 key: ValueKey('tag_${i}_${_assetController.text}'),
                                 initialValue: canal.tag,
-                                decoration: InputDecoration(labelText: 'Tag ${i + 1}'),
+                                decoration: const InputDecoration(
+                                  labelText: 'Tag',
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                                ),
                                 onChanged: (val) => setState(() => canal.tag = val.isNotEmpty ? val : '${i + 1}H'),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: TextFormField(
                                 key: ValueKey('angulo_${i}_${_assetController.text}'),
                                 initialValue: canal.angulo.toString(),
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 inputFormatters: [AngleInputFormatter()],
-                                decoration: InputDecoration(labelText: 'Ángulo ${canal.tag} (°)'),
+                                decoration: const InputDecoration(
+                                  labelText: 'Ángulo (°)',
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                                ),
                                 onChanged: (val) => setState(() => canal.angulo = double.tryParse(val) ?? 0),
                               ),
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.redAccent),
+                              onPressed: _canales.length > (_numPlanos == 2 ? 2 : 1)
+                                  ? () => setState(() {
+                                      _canales.removeAt(i);
+                                    })
+                                  : null,
                             ),
                           ],
                         ),
@@ -318,7 +375,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                         ButtonSegment(value: 2, label: Text('2 planos')),
                       ],
                       selected: {_numPlanos},
-                      onSelectionChanged: (set) => setState(() => _numPlanos = set.first),
+                      onSelectionChanged: (set) => _onNumPlanosChanged(set.first),
                     ),
                     const SizedBox(height: 16),
 

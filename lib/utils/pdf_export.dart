@@ -98,6 +98,12 @@ class PdfExport {
     final font = pw.Font.helvetica();
     final fontBold = pw.Font.helveticaBold();
 
+    final List<Color> coloresCanales = [
+      const Color(0xFF0D47A1), // Azul industrial
+      const Color(0xFFB71C1C), // Rojo rubí
+      const Color(0xFF1B5E20), // Verde bosque
+      const Color(0xFF4A148C), // Púrpura profundo
+    ];
 
     // ── Masas correctoras ────────────────────────────────────────────────────
     Complejo? m1;
@@ -119,29 +125,31 @@ class PdfExport {
     final esRef = iteracion > 1;
 
     if (esRef) {
-      if (provider.v0_1_original != null) {
-        vIni.add(provider.v0_1_original!);
-        cIni.add(const Color(0x330D47A1)); // deep blue semi-transparent
-        eIni.add('$tag1 (orig.)');
+      if (provider.v0Original != null) {
+        for (int i = 0; i < provider.v0Original!.length; i++) {
+          final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+          vIni.add(provider.v0Original![i]);
+          cIni.add(coloresCanales[i % coloresCanales.length].withOpacity(0.3));
+          eIni.add('$tag (orig.)');
+        }
       }
-      if (provider.v0_2_original != null) {
-        vIni.add(provider.v0_2_original!);
-        cIni.add(const Color(0x33B71C1C)); // ruby red semi-transparent
-        eIni.add('$tag2 (orig.)');
-      }
-      if (provider.v0_1 != null) {
-        vIni.add(provider.v0_1!);
-        cIni.add(const Color(0xFF0D47A1)); // deep blue solid
-        eIni.add('$tag1 (residual)');
-      }
-      if (provider.v0_2 != null) {
-        vIni.add(provider.v0_2!);
-        cIni.add(const Color(0xFFB71C1C)); // ruby red solid
-        eIni.add('$tag2 (residual)');
+      if (provider.v0 != null) {
+        for (int i = 0; i < provider.v0!.length; i++) {
+          final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+          vIni.add(provider.v0![i]);
+          cIni.add(coloresCanales[i % coloresCanales.length]);
+          eIni.add('$tag (residual)');
+        }
       }
     } else {
-      if (provider.v0_1 != null) { vIni.add(provider.v0_1!); cIni.add(const Color(0xFF0D47A1)); eIni.add(tag1); }
-      if (provider.v0_2 != null) { vIni.add(provider.v0_2!); cIni.add(const Color(0xFFB71C1C)); eIni.add(tag2); }
+      if (provider.v0 != null) {
+        for (int i = 0; i < provider.v0!.length; i++) {
+          final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+          vIni.add(provider.v0![i]);
+          cIni.add(coloresCanales[i % coloresCanales.length]);
+          eIni.add(tag);
+        }
+      }
     }
 
     final double maxAmpIni = vIni.isEmpty ? 10.0
@@ -152,12 +160,27 @@ class PdfExport {
 
     // 2. Efecto Prueba P1
     pw.MemoryImage? imgP1;
-    if (provider.v1_1_temp != null) {
-      final List<Complejo> vP1 = [...vIni.take(2)];
-      final List<Color> cP1 = [...cIni.take(2)];
-      final List<String> eP1 = [...eIni.take(2)];
-      if (provider.v1_1_temp != null) { vP1.add(provider.v1_1_temp!); cP1.add(const Color(0xFF00C8FF)); eP1.add('$tag1 w/Prueba'); }
-      if (provider.v1_2_temp != null) { vP1.add(provider.v1_2_temp!); cP1.add(const Color(0xFFFF007F)); eP1.add('$tag2 w/Prueba'); }
+    if (provider.v1Temp != null && provider.v1Temp!.isNotEmpty) {
+      final List<Complejo> baseVecs = esRef
+          ? (provider.v0Original ?? [])
+          : (provider.v0 ?? []);
+      final List<Complejo> vP1 = [];
+      final List<Color> cP1 = [];
+      final List<String> eP1 = [];
+
+      for (int i = 0; i < baseVecs.length; i++) {
+        final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+        vP1.add(baseVecs[i]);
+        cP1.add(coloresCanales[i % coloresCanales.length].withOpacity(esRef ? 0.3 : 1.0));
+        eP1.add(esRef ? '$tag (orig.)' : tag);
+      }
+
+      for (int i = 0; i < provider.v1Temp!.length; i++) {
+        final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+        vP1.add(provider.v1Temp![i]);
+        cP1.add(coloresCanales[i % coloresCanales.length].withOpacity(0.7));
+        eP1.add('$tag w/Prueba');
+      }
 
       final List<MasaMarker> masasP1 = [];
       if (provider.mt1_temp != null) {
@@ -170,9 +193,38 @@ class PdfExport {
     }
 
     // 3. Masas Correctoras
-    List<Complejo> vFin = List.from(vIni);
-    List<Color> cFin = List.from(cIni);
-    List<String> eFin = List.from(eIni);
+    List<Complejo> vFin = [];
+    List<Color> cFin = [];
+    List<String> eFin = [];
+
+    if (esRef) {
+      if (provider.v0Original != null) {
+        for (int i = 0; i < provider.v0Original!.length; i++) {
+          final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+          vFin.add(provider.v0Original![i]);
+          cFin.add(coloresCanales[i % coloresCanales.length].withOpacity(0.3));
+          eFin.add('$tag (orig.)');
+        }
+      }
+      if (provider.v0 != null) {
+        for (int i = 0; i < provider.v0!.length; i++) {
+          final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+          vFin.add(provider.v0![i]);
+          cFin.add(coloresCanales[i % coloresCanales.length]);
+          eFin.add('$tag (residual)');
+        }
+      }
+    } else {
+      if (provider.v0 != null) {
+        for (int i = 0; i < provider.v0!.length; i++) {
+          final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+          vFin.add(provider.v0![i]);
+          cFin.add(coloresCanales[i % coloresCanales.length]);
+          eFin.add(tag);
+        }
+      }
+    }
+
     final List<MasaMarker> masasCorr = [];
     if (m1 != null) masasCorr.add(MasaMarker(masa: m1, color: const Color(0xFF2D8653), etiqueta: 'Masa P1'));
     if (es2Planos && m2 != null) masasCorr.add(MasaMarker(masa: m2, color: const Color(0xFFE27700), etiqueta: 'Masa P2'));
@@ -180,6 +232,139 @@ class PdfExport {
     final imgFin = await _renderGrafica(
         vectores: vFin, colores: cFin, etiquetas: eFin,
         maxRadio: maxFin * 1.2, config: config, masas: masasCorr);
+
+    // 4. Vibración de Verificación
+    pw.MemoryImage? imgVerif;
+    if (provider.vVerificacion != null && provider.vVerificacion!.isNotEmpty) {
+      final List<Complejo> vVer = [];
+      final List<Color> cVer = [];
+      final List<String> eVer = [];
+
+      // Vectores iniciales translúcidos
+      if (provider.v0 != null) {
+        for (int i = 0; i < provider.v0!.length; i++) {
+          final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+          vVer.add(provider.v0![i]);
+          cVer.add(coloresCanales[i % coloresCanales.length].withOpacity(0.3));
+          eVer.add('$tag (Ini.)');
+        }
+      }
+
+      // Vectores de verificación sólidos
+      for (int i = 0; i < provider.vVerificacion!.length; i++) {
+        final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+        vVer.add(provider.vVerificacion![i]);
+        cVer.add(coloresCanales[i % coloresCanales.length]);
+        eVer.add('$tag (Verif.)');
+      }
+
+      final double maxAmpVer = vVer.isEmpty ? 10.0 : vVer.map((v) => v.modulo).reduce((a, b) => a > b ? a : b);
+      imgVerif = await _renderGrafica(
+          vectores: vVer, colores: cVer, etiquetas: eVer,
+          maxRadio: maxAmpVer * 1.2, config: config, masas: []);
+    }
+
+    // Pre-calculate widgets for initial/original readings to support dynamic channels
+    final List<pw.Widget> initialVibrationWidgets = [];
+    if (provider.v0 != null) {
+      for (int i = 0; i < provider.v0!.length; i++) {
+        final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+        initialVibrationWidgets.add(_vectorFila(tag, provider.v0![i], unidad, font, fontBold: fontBold));
+      }
+    }
+    final List<pw.Widget> originalVibrationWidgets = [];
+    if (esRef && provider.v0Original != null) {
+      for (int i = 0; i < provider.v0Original!.length; i++) {
+        final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+        originalVibrationWidgets.add(_vectorFila('$tag (orig.)', provider.v0Original![i], unidad, font));
+      }
+    }
+
+    // Pre-calculate widgets for trial readings
+    final List<pw.Widget> trial1Widgets = [];
+    if (provider.v1Temp != null) {
+      for (int i = 0; i < provider.v1Temp!.length; i++) {
+        final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+        trial1Widgets.add(_vectorFila('$tag c/prueba', provider.v1Temp![i], unidad, font));
+      }
+    }
+
+    // Pre-calculate widgets for verification readings
+    final List<pw.Widget> verifWidgets = [];
+    if (provider.vVerificacion != null) {
+      for (int i = 0; i < provider.vVerificacion!.length; i++) {
+        final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
+        final vIniVal = (provider.v0 != null && i < provider.v0!.length) ? provider.v0![i] : null;
+        final vVerVal = provider.vVerificacion![i];
+        double reduction = 0.0;
+        if (vIniVal != null && vIniVal.modulo > 0) {
+          reduction = ((vIniVal.modulo - vVerVal.modulo) / vIniVal.modulo) * 100;
+        }
+
+        final iniText = vIniVal != null 
+            ? '${vIniVal.modulo.toStringAsFixed(3)} $unidad @ ${vIniVal.anguloGrados.toStringAsFixed(1)}°'
+            : 'N/A';
+        final verText = '${vVerVal.modulo.toStringAsFixed(3)} $unidad @ ${vVerVal.anguloGrados.toStringAsFixed(1)}°';
+        final redText = vIniVal != null ? '${reduction.toStringAsFixed(1)}%' : 'N/A';
+
+        verifWidgets.add(
+          pw.Padding(
+            padding: const pw.EdgeInsets.symmetric(vertical: 2),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(tag, style: pw.TextStyle(font: fontBold, fontSize: 10, color: PdfColors.blue800)),
+                _fila('  Vibración Inicial', iniText, font),
+                _fila('  Vibración Final (Verif.)', verText, font),
+                _fila('  Reducción de Vibración', redText, font, fontBold: fontBold),
+                pw.SizedBox(height: 4),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+
+    // Pre-calculate history table headers and data
+    final List<String> tableHeaders = [
+      'It.',
+      'Masa P1 (g)',
+      'Ángulo P1 (°)',
+      if (es2Planos) 'Masa P2 (g)',
+      if (es2Planos) 'Ángulo P2 (°)',
+    ];
+    if (config != null) {
+      for (final canal in config.canales) {
+        tableHeaders.add('Vib. ${canal.tag} ($unidad)');
+      }
+    } else {
+      tableHeaders.add('Vib. $tag1 ($unidad)');
+      if (es2Planos) tableHeaders.add('Vib. $tag2 ($unidad)');
+    }
+
+    final List<List<String>> tableData = [];
+    for (final item in provider.historial) {
+      final List<String> row = [
+        '${item.iteracion}',
+        item.masaPlano1?.modulo.toStringAsFixed(3) ?? 'N/A',
+        item.masaPlano1?.anguloGrados.toStringAsFixed(2) ?? 'N/A',
+        if (es2Planos) item.masaPlano2?.modulo.toStringAsFixed(3) ?? 'N/A',
+        if (es2Planos) item.masaPlano2?.anguloGrados.toStringAsFixed(2) ?? 'N/A',
+      ];
+      if (config != null) {
+        for (int i = 0; i < config.canales.length; i++) {
+          if (i < item.vibracionesResiduales.length) {
+            row.add(item.vibracionesResiduales[i].toStringAsFixed(3));
+          } else {
+            row.add('N/A');
+          }
+        }
+      } else {
+        row.add(item.vibracionResidual1.toStringAsFixed(3));
+        if (es2Planos) row.add(item.vibracionResidual2.toStringAsFixed(3));
+      }
+      tableData.add(row);
+    }
 
     // ── Construir PDF ─────────────────────────────────────────────────────────
     pdf.addPage(
@@ -220,25 +405,25 @@ class PdfExport {
           if (config?.tipo == TipoRotor.discreto)
             _fila('Número de álabes', '${config?.numAlabes}', font),
           _fila('Ángulo Keyphasor', '${config?.keyphasorAngulo ?? 0}°', font),
-          _fila('Ángulo $tag1', '${config?.sensorXAngulo ?? 0}°', font),
-          _fila('Ángulo $tag2', '${config?.sensorYAngulo ?? 90}°', font),
+          if (config != null)
+            for (final canal in config.canales)
+              _fila('Ángulo ${canal.tag}', '${canal.angulo}°', font)
+          else ...[
+            _fila('Ángulo $tag1', '${config?.sensorXAngulo ?? 0}°', font),
+            _fila('Ángulo $tag2', '${config?.sensorYAngulo ?? 90}°', font),
+          ],
           _fila('Planos de corrección', '${config?.numPlanos ?? 1}', font),
           _fila('Unidad de vibración', config?.unidadStr ?? 'µm', font),
           _fila('Límite de vibración', '${config?.limiteVibracion ?? 50} ${config?.unidadStr ?? 'µm'}', font),
 
           // ── 3. Medición Inicial ──────────────────────────────────────────
           _sectionTitle(esRef ? '3. Vibración Residual (It.${iteracion - 1})' : '3. Medición Inicial', font),
-          if (provider.v0_1 != null)
-            _vectorFila(tag1, provider.v0_1!, unidad, font, fontBold: fontBold),
-          if (provider.v0_2 != null)
-            _vectorFila(tag2, provider.v0_2!, unidad, font, fontBold: fontBold),
-          if (esRef && provider.v0_1_original != null) ...[
+          ...initialVibrationWidgets,
+          if (esRef && originalVibrationWidgets.isNotEmpty) ...[
             pw.SizedBox(height: 4),
             pw.Text('Valores originales (estado sucio):',
                 style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey600)),
-            _vectorFila('$tag1 (orig.)', provider.v0_1_original!, unidad, font),
-            if (provider.v0_2_original != null)
-              _vectorFila('$tag2 (orig.)', provider.v0_2_original!, unidad, font),
+            ...originalVibrationWidgets,
           ],
           pw.SizedBox(height: 8),
           pw.Center(child: pw.Image(imgIni, width: 280, height: 280)),
@@ -248,10 +433,7 @@ class PdfExport {
             _sectionTitle('4. Efecto del Peso de Prueba', font),
             if (provider.mt1_temp != null)
               _vectorFila('Masa de prueba P1', provider.mt1_temp!, 'g', font, fontBold: fontBold),
-            if (provider.v1_1_temp != null)
-              _vectorFila('$tag1 c/prueba', provider.v1_1_temp!, unidad, font),
-            if (provider.v1_2_temp != null)
-              _vectorFila('$tag2 c/prueba', provider.v1_2_temp!, unidad, font),
+            ...trial1Widgets,
             pw.SizedBox(height: 8),
             pw.Center(child: pw.Image(imgP1, width: 280, height: 280)),
           ],
@@ -275,7 +457,6 @@ class PdfExport {
                 suffix: (provider.matrizCoeficientes![1][1].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
           ],
 
-
           // ── 6. Masa Correctora ───────────────────────────────────────────
           _sectionTitle('6. Masa Correctora - It. $iteracion', font),
           if (m1 != null) ...[
@@ -296,8 +477,16 @@ class PdfExport {
           pw.SizedBox(height: 8),
           pw.Center(child: pw.Image(imgFin, width: 280, height: 280)),
 
-          // ── 7. Historial de Iteraciones ──────────────────────────────────
-          _sectionTitle('7. Historial de Iteraciones', font),
+          // ── 7. Vibración de Verificación / Resultados Finales ────────────
+          if (imgVerif != null && provider.vVerificacion != null) ...[
+            _sectionTitle('7. Vibración de Verificación / Resultados Finales', font),
+            ...verifWidgets,
+            pw.SizedBox(height: 8),
+            pw.Center(child: pw.Image(imgVerif, width: 280, height: 280)),
+          ],
+
+          // ── 8. Historial de Iteraciones ──────────────────────────────────
+          _sectionTitle('8. Historial de Iteraciones', font),
           if (provider.historial.isEmpty)
             pw.Text('No hay iteraciones registradas en el historial.',
                 style: pw.TextStyle(font: font, fontSize: 10, color: PdfColors.grey))
@@ -308,27 +497,12 @@ class PdfExport {
               headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
               cellStyle: pw.TextStyle(font: font, fontSize: 9),
               cellPadding: const pw.EdgeInsets.all(4),
-              headers: [
-                'It.', 'Masa P1 (g)', 'Ángulo P1 (°)',
-                if (es2Planos) 'Masa P2 (g)', if (es2Planos) 'Ángulo P2 (°)',
-                'Vib. $tag1 ($unidad)', if (es2Planos) 'Vib. $tag2 ($unidad)',
-              ],
-              data: [
-                for (final item in provider.historial)
-                  [
-                    '${item.iteracion}',
-                    item.masaPlano1?.modulo.toStringAsFixed(3) ?? 'N/A',
-                    item.masaPlano1?.anguloGrados.toStringAsFixed(2) ?? 'N/A',
-                    if (es2Planos) item.masaPlano2?.modulo.toStringAsFixed(3) ?? 'N/A',
-                    if (es2Planos) item.masaPlano2?.anguloGrados.toStringAsFixed(2) ?? 'N/A',
-                    item.vibracionResidual1.toStringAsFixed(3),
-                    if (es2Planos) item.vibracionResidual2.toStringAsFixed(3),
-                  ],
-              ],
+              headers: tableHeaders,
+              data: tableData,
             ),
 
-          // ── 8. Recomendaciones ───────────────────────────────────────────
-          _sectionTitle('8. Recomendaciones', font),
+          // ── 9. Recomendaciones ───────────────────────────────────────────
+          _sectionTitle('9. Recomendaciones', font),
           ...[
             '- Verificar la correcta instalación de las masas correctoras antes de arrancar.',
             '- Confirmar la calibración del sistema de medición de fase (keyphasor).',

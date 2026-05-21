@@ -29,6 +29,7 @@ class Complejo {
 
   double get modulo => sqrt(real * real + imaginario * imaginario);
   double get anguloGrados => (atan2(imaginario, real) * 180 / pi) % 360;
+  Complejo get conjugado => Complejo(real, -imaginario);
 
   @override
   String toString() => "mod: ${modulo.toStringAsFixed(2)} @ ${anguloGrados.toStringAsFixed(1)}°";
