@@ -41,3 +41,80 @@ El modelo es VÁLIDO y cumple con los requisitos para balanceo de precisión en 
 Recomendación de mejora:
 
 Implementar una validación de "Masa de Prueba Sugerida" para evitar que el usuario coloque una masa tan pequeña que no logre un cambio significativo en el vector de vibración (regla del 30% de cambio en amplitud o 30° en fase).
+
+---
+
+## 6. Ampliación a 4 Posiciones de Medición (Sistemas Sobredeterminados)
+
+Cuando se pasa de medir en **un solo soporte** (con sensor horizontal y vertical, sumando 2 canales en total) a medir en **dos soportes** (ambos con sensores horizontal y vertical, sumando 4 canales en total) manteniendo **2 planos de corrección**, el modelo matemático experimenta un cambio fundamental de categoría.
+
+### 6.1. De un Sistema Determinado a uno Sobredeterminado
+En la configuración estándar de 2 planos y 2 sensores, el sistema de ecuaciones es **determinado**:
+* **Incógnitas**: 2 masas de corrección complejas ($\vec{M}_1, \vec{M}_2$, que equivalen a 4 incógnitas reales: magnitud y fase para cada plano).
+* **Ecuaciones**: 2 lecturas de vibración complejas ($\vec{V}_{0,1}, \vec{V}_{0,2}$, equivalentes a 4 ecuaciones reales).
+* **Solución**: Existe una solución única exacta $[\vec{M}] = -[\mathbf{C}]^{-1} [\vec{V}_0]$ que, en teoría, reduce la vibración en ambos sensores a exactamente cero.
+
+Al introducir 4 sensores ($S_{1H}, S_{1V}, S_{2H}, S_{2V}$) y mantener solo 2 planos de corrección:
+* **Incógnitas**: 2 masas complejas ($\vec{M}_1, \vec{M}_2$).
+* **Ecuaciones**: 4 lecturas de vibración complejas ($\vec{V}_{0,1H}, \vec{V}_{0,1V}, \vec{V}_{0,2H}, \vec{V}_{0,2V}$, es decir, 8 ecuaciones reales).
+* **Matriz de Coeficientes**: Se convierte en una matriz no cuadrada $[\mathbf{C}]$ de dimensiones $4 \times 2$.
+* **Consecuencia**: El sistema se vuelve **sobredeterminado** ($4 > 2$). En la práctica, debido a ruidos de medición, no-linealidades y asimetrías físicas del rotor, **no existe una combinación de masas que reduzca a cero absoluto la vibración en los 4 puntos de medición simultáneamente**.
+
+### 6.2. Solución Matemática: Método de Mínimos Cuadrados
+Para resolver este sistema, el objetivo cambia de "hacer la vibración residual igual a cero" a "minimizar el promedio de la energía vibratoria residual global". 
+
+Definimos el vector de vibraciones residuales $\vec{\mathbf{V}}_{res} \in \mathbb{C}^4$:
+$$\vec{\mathbf{V}}_{res} = \vec{\mathbf{V}}_0 + [\mathbf{C}] \vec{\mathbf{M}}$$
+
+Buscamos minimizar la suma de los cuadrados de los módulos de la vibración residual (función de costo $E$):
+$$E = \|\vec{\mathbf{V}}_{res}\|^2 = \vec{\mathbf{V}}_{res}^H \vec{\mathbf{V}}_{res}$$
+
+donde $H$ indica la **traspuesta conjugada (Hermitiana)**. Al diferenciar con respecto a los componentes de la masa de corrección e igualar a cero, obtenemos las **Ecuaciones Normales**:
+$$[\mathbf{C}]^H [\mathbf{C}] \vec{\mathbf{M}} = - [\mathbf{C}]^H \vec{\mathbf{V}}_0$$
+
+Dado que $[\mathbf{C}]$ es $4 \times 2$, el término $[\mathbf{C}]^H [\mathbf{C}]$ es una **matriz cuadrada de $2 \times 2$**. Suponiendo que las columnas de $[\mathbf{C}]$ sean linealmente independientes, esta matriz es invertible y la solución óptima es:
+$$\vec{\mathbf{M}} = - \left( [\mathbf{C}]^H [\mathbf{C}] \right)^{-1} [\mathbf{C}]^H \vec{\mathbf{V}}_0$$
+
+Aquí, la expresión $\mathbf{C}^+ = ([\mathbf{C}]^H [\mathbf{C}])^{-1} [\mathbf{C}]^H$ es la **pseudoinversa de Moore-Penrose** de la matriz de coeficientes de influencia.
+
+### 6.3. Necesidad de Ponderación (Weighted Least Squares)
+En maquinaria rotativa, los soportes suelen ser **anisótropos** (la rigidez en la dirección horizontal suele ser significativamente menor que en la vertical debido al diseño del pedestal). Esto causa que las amplitudes de vibración horizontal sean mucho mayores.
+
+Si aplicamos mínimos cuadrados simples, el algoritmo priorizará reducir las vibraciones horizontales (porque aportan más al error cuadrático total), descuidando e incluso empeorando las verticales.
+
+Para corregir esto, se introduce una matriz diagonal de pesos reales positivos $[\mathbf{W}] \in \mathbb{R}^{4 \times 4}$:
+$$[\mathbf{W}] = \begin{pmatrix} w_{1H} & 0 & 0 & 0 \\ 0 & w_{1V} & 0 & 0 \\ 0 & 0 & w_{2H} & 0 \\ 0 & 0 & 0 & w_{2V} \end{pmatrix}$$
+
+La función de costo ponderada es $E_w = \vec{\mathbf{V}}_{res}^H [\mathbf{W}] \vec{\mathbf{V}}_{res}$, y su solución resulta en:
+$$\vec{\mathbf{M}} = - \left( [\mathbf{C}]^H [\mathbf{W}] [\mathbf{C}] \right)^{-1} [\mathbf{C}]^H [\mathbf{W}] \vec{\mathbf{V}}_0$$
+
+Esto permite al operador o al software dar más peso a un rodamiento crítico o equilibrar el peso de las componentes horizontales y verticales (por ejemplo, asignando $w_V > w_H$).
+
+### 6.4. Impacto y Requerimientos de Código para la App
+Para implementar esta lógica de 4 sensores dentro del código actual, se requeriría:
+
+1. **Estructura de Datos (`RotorConfig`)**:
+   * Permitir un nuevo modo de medición de 4 posiciones.
+   * Almacenar coeficientes de ponderación opcionales.
+
+2. **Cálculo de Coeficientes (`BalanceoProvider` / `BalanceoLogic`)**:
+   * Los vectores de vibración inicial ($\vec{V}_0$) y de corridas de prueba con masas ($\vec{V}_1, \vec{V}_2$) pasan de contener 2 complejos a 4 complejos.
+   * La matriz de coeficientes de influencia se almacena como `List<List<Complejo>>` de $4 \times 2$.
+   * La fórmula para calcular los coeficientes de influencia individuales por plano $j$ y sensor $i$ sigue siendo lineal y directa:
+     $$c_{i, j} = \frac{\vec{V}_{j, i} - \vec{V}_{0, i}}{\vec{M}_{t, j}}$$
+
+3. **Inversión y Resolución**:
+   * En lugar de calcular el determinante de la matriz directa $[\mathbf{C}]$, primero debemos efectuar el producto matricial complejo $[\mathbf{C}]^H [\mathbf{C}]$ (o $[\mathbf{C}]^H [\mathbf{W}] [\mathbf{C}]$).
+   * Al ser el resultado de esta operación una matriz de $2 \times 2$, podemos reutilizar el algoritmo de inversión por determinante adjunto implementado en `calcularCorreccion2Planos` sobre esta nueva matriz resultante. No se requiere incluir bibliotecas externas complejas de álgebra lineal en Dart.
+   * Ejemplo de pseudocódigo para resolver en Dart:
+     ```dart
+     // C = Matriz 4x2 de coeficientes de influencia
+     // W = Matriz diagonal 4x4 de pesos
+     // V0 = Vector de vibración inicial (longitud 4)
+     
+     // 1. Calcular C_H (Traspuesta conjugada, 2x4)
+     // 2. Calcular A = C_H * W * C (Resultado: 2x2)
+     // 3. Calcular B = C_H * W * (-V0) (Resultado: 2x1)
+     // 4. Resolver A * M = B mediante inversión de matriz 2x2:
+     //    M = A^-1 * B
+     ```
