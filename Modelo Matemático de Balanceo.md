@@ -115,6 +115,38 @@ Para implementar esta lógica de 4 sensores dentro del código actual, se requer
      // 1. Calcular C_H (Traspuesta conjugada, 2x4)
      // 2. Calcular A = C_H * W * C (Resultado: 2x2)
      // 3. Calcular B = C_H * W * (-V0) (Resultado: 2x1)
-     // 4. Resolver A * M = B mediante inversión de matriz 2x2:
-     //    M = A^-1 * B
-     ```
+      // 4. Resolver A * M = B mediante inversión de matriz 2x2:
+      //    M = A^-1 * B
+      ```
+
+### 6.5. ¿Priorización Automática de Posiciones de Medición?
+
+La pregunta de si el sistema debe priorizar automáticamente ciertas posiciones o direcciones (e.g., horizontal vs vertical) sobre la base de la dinámica y la no linealidad es un dilema clásico en la dinámica de rotores y el balanceo industrial en campo.
+
+#### 6.5.1. El Comportamiento Físico del Rotor: Anisotropía y Fuerza vs. Desplazamiento
+* **Anisotropía de Soportes:** Los pedestales de rodamientos suelen ser mucho más rígidos verticalmente (apoyados en compresión sobre la fundación y base de concreto) que horizontalmente. Esto significa que la rigidez vertical ($K_y$) es usualmente entre 2 y 4 veces mayor que la horizontal ($K_x$).
+* Por tanto, para una misma fuerza centrífuga de desbalance $F = m \cdot r \cdot \omega^2$, la amplitud de la vibración resultante será inherentemente mayor en la dirección horizontal ($V_x \approx F / K_x$) que en la vertical ($V_y \approx F / K_y$).
+* **El Peligro de Priorizar Solo la Mayor Amplitud:** Si el sistema prioriza automáticamente la posición horizontal por tener mayor amplitud, puede estar ignorando fuerzas estructurales masivas en la dirección vertical. Una vibración de $3\text{ mm/s}$ en vertical puede estar transmitiendo esfuerzos a los rodamientos equivalentes a $9\text{ mm/s}$ en horizontal.
+
+#### 6.5.2. Criterios para una Priorización Automática Inteligente
+Una priorización 100% automatizada basada únicamente en "dónde hay más vibración" es peligrosa. Sin embargo, un sistema inteligente puede realizar una **priorización y ponderación automática adaptativa** utilizando tres criterios dinámicos y de calidad de señal:
+
+1. **Estabilidad y Coherencia de Fase (Mitigación de No Linealidad):**
+   * Las no linealidades (holguras mecánicas, roces estatóricos, desalineación severa) provocan que la fase del vector de vibración a la frecuencia de giro ($1\times$) sea inestable y fluctúe en el tiempo.
+   * **Lógica del Sistema:** El software puede medir la desviación estándar de la fase en un intervalo de tiempo. Si un sensor presenta una desviación de fase elevada ($\sigma_{\theta} > 5^\circ$), el sistema debe **disminuir automáticamente su peso ($w_i$)** en la matriz $[\mathbf{W}]$. Las señales inestables por no linealidad ensucian el cálculo de coeficientes de influencia.
+   
+2. **Pureza Espectral del Desbalance (Relación $1\times$ vs. Valor Global / RMS):**
+   * El balanceo por masas solo puede corregir la vibración síncrona a la frecuencia de giro del rotor ($1\times$).
+   * Si un sensor muestra una vibración elevada, pero su análisis espectral revela que la energía está concentrada en armónicos ($2\times$, $3\times$ por desalineación) o subarmónicos ($0.5\times$ por holgura o inestabilidad de película de aceite), colocar masas de balanceo no resolverá el problema.
+   * **Lógica del Sistema:** El sistema debe calcular el índice de pureza: $I_p = V_{1\times} / V_{RMS}$. Las posiciones con una relación baja ($I_p < 0.8$) deben ser penalizadas automáticamente con pesos menores en la matriz de mínimos cuadrados, alertando además al técnico sobre otros posibles problemas mecánicos.
+
+3. **Consistencia en la Respuesta a Masas de Prueba (Linealidad de Coeficientes):**
+   * Durante las iteraciones de refinamiento (nueva corrida tras colocar masas correctoras), el sistema predice cuál debería ser la nueva vibración residual.
+   * Si en una dirección particular el error entre la vibración residual real y la predicha es sistemáticamente alto, el sistema detecta que esa posición opera en una zona no lineal (o el sensor está mal ubicado).
+   * **Lógica del Sistema:** El algoritmo puede ajustar recursivamente los pesos de ponderación $w_i$, reduciendo la influencia de los sensores cuyo comportamiento desvíe de la linealidad del modelo.
+
+#### 6.5.3. Recomendación de Diseño para la Aplicación
+Para la arquitectura de tu aplicación, la mejor práctica recomendada es un **enfoque híbrido (Semiautomático)**:
+1. **Ponderación por Defecto Normalizada:** El sistema inicializa la matriz $[\mathbf{W}]$ con pesos iguales ($1.0$) o normalizados por una estimación de rigidez genérica (e.g., $w_V = 1.5, w_H = 1.0$) para compensar la anisotropía natural.
+2. **Filtro de Calidad Automático:** Si el sistema detecta inestabilidad de fase o baja pureza espectral en un canal de medición, debe reducir automáticamente su peso en la matriz $[\mathbf{W}]$ y mostrar una alerta en pantalla: *"Detector de no-linealidad/ruido activo: Sensor Vertical 2 ponderado al 20% debido a inestabilidad de fase"*.
+3. **Control Manual para el Especialista:** Ofrecer un panel avanzado donde el técnico pueda ajustar manualmente los pesos de cada sensor en función de su experiencia y del conocimiento de la criticidad de cada rodamiento.
