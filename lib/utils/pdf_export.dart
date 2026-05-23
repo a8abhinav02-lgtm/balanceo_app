@@ -241,10 +241,11 @@ class PdfExport {
       final List<String> eVer = [];
 
       // Vectores iniciales translúcidos
-      if (provider.v0 != null) {
-        for (int i = 0; i < provider.v0!.length; i++) {
+      final List<Complejo>? initialVectors = provider.v0Original ?? provider.v0;
+      if (initialVectors != null) {
+        for (int i = 0; i < initialVectors.length; i++) {
           final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
-          vVer.add(provider.v0![i]);
+          vVer.add(initialVectors[i]);
           cVer.add(coloresCanales[i % coloresCanales.length].withOpacity(0.3));
           eVer.add('$tag (Ini.)');
         }
@@ -294,7 +295,9 @@ class PdfExport {
     if (provider.vVerificacion != null) {
       for (int i = 0; i < provider.vVerificacion!.length; i++) {
         final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
-        final vIniVal = (provider.v0 != null && i < provider.v0!.length) ? provider.v0![i] : null;
+        final vIniVal = (provider.v0Original != null && i < provider.v0Original!.length)
+            ? provider.v0Original![i]
+            : ((provider.v0 != null && i < provider.v0!.length) ? provider.v0![i] : null);
         final vVerVal = provider.vVerificacion![i];
         double reduction = 0.0;
         if (vIniVal != null && vIniVal.modulo > 0) {
