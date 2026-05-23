@@ -429,26 +429,39 @@ class PdfExport {
           _fila('Límite de vibración', '${config?.limiteVibracion ?? 50} ${config?.unidadStr ?? 'µm'}', font),
 
           // ── 3. Medición Inicial ──────────────────────────────────────────
-          _sectionTitle(esRef ? '3. Vibración Residual (It.${iteracion - 1})' : '3. Medición Inicial', font),
-          ...initialVibrationWidgets,
-          if (esRef && originalVibrationWidgets.isNotEmpty) ...[
-            pw.SizedBox(height: 4),
-            pw.Text('Valores originales (estado sucio):',
-                style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey600)),
-            ...originalVibrationWidgets,
-          ],
-          pw.SizedBox(height: 8),
-          pw.Center(child: pw.Image(imgIni, width: 280, height: 280)),
+          pw.Inseparable(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                _sectionTitle(esRef ? '3. Vibración Residual (It.${iteracion - 1})' : '3. Medición Inicial', font),
+                ...initialVibrationWidgets,
+                if (esRef && originalVibrationWidgets.isNotEmpty) ...[
+                  pw.SizedBox(height: 4),
+                  pw.Text('Valores originales (estado sucio):',
+                      style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey600)),
+                  ...originalVibrationWidgets,
+                ],
+                pw.SizedBox(height: 8),
+                pw.Center(child: pw.Image(imgIni, width: 280, height: 280)),
+              ],
+            ),
+          ),
 
           // ── 4. Peso de Prueba ────────────────────────────────────────────
-          if (imgP1 != null) ...[
-            _sectionTitle('4. Efecto del Peso de Prueba', font),
-            if (provider.mt1_temp != null)
-              _vectorFila('Masa de prueba P1', provider.mt1_temp!, 'g', font, fontBold: fontBold),
-            ...trial1Widgets,
-            pw.SizedBox(height: 8),
-            pw.Center(child: pw.Image(imgP1, width: 280, height: 280)),
-          ],
+          if (imgP1 != null)
+            pw.Inseparable(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  _sectionTitle('4. Efecto del Peso de Prueba', font),
+                  if (provider.mt1_temp != null)
+                    _vectorFila('Masa de prueba P1', provider.mt1_temp!, 'g', font, fontBold: fontBold),
+                  ...trial1Widgets,
+                  pw.SizedBox(height: 8),
+                  pw.Center(child: pw.Image(imgP1, width: 280, height: 280)),
+                ],
+              ),
+            ),
 
           // ── 5. Coeficientes de Influencia ────────────────────────────────
           pw.Inseparable(
@@ -477,32 +490,45 @@ class PdfExport {
           ),
 
           // ── 6. Masa Correctora ───────────────────────────────────────────
-          _sectionTitle('6. Masa Correctora - It. $iteracion', font),
-          if (m1 != null) ...[
-            _fila('Masa P1', '${m1.modulo.toStringAsFixed(3)} g', font, fontBold: fontBold),
-            _fila('Ángulo P1', '${m1.anguloGrados.toStringAsFixed(2)}°', font, fontBold: fontBold),
-            if (config?.tipo == TipoRotor.discreto)
-              _fila('Álabe sugerido P1',
-                  '${provider.sugerirAlabe(m1.anguloGrados) ?? 'N/A'}', font),
-          ],
-          if (es2Planos && m2 != null) ...[
-            pw.SizedBox(height: 4),
-            _fila('Masa P2', '${m2.modulo.toStringAsFixed(3)} g', font, fontBold: fontBold),
-            _fila('Ángulo P2', '${m2.anguloGrados.toStringAsFixed(2)}°', font, fontBold: fontBold),
-            if (config?.tipo == TipoRotor.discreto)
-              _fila('Álabe sugerido P2',
-                  '${provider.sugerirAlabe(m2.anguloGrados) ?? 'N/A'}', font),
-          ],
-          pw.SizedBox(height: 8),
-          pw.Center(child: pw.Image(imgFin, width: 280, height: 280)),
+          pw.Inseparable(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                _sectionTitle('6. Masa Correctora - It. $iteracion', font),
+                if (m1 != null) ...[
+                  _fila('Masa P1', '${m1.modulo.toStringAsFixed(3)} g', font, fontBold: fontBold),
+                  _fila('Ángulo P1', '${m1.anguloGrados.toStringAsFixed(2)}°', font, fontBold: fontBold),
+                  if (config?.tipo == TipoRotor.discreto)
+                    _fila('Álabe sugerido P1',
+                        '${provider.sugerirAlabe(m1.anguloGrados) ?? 'N/A'}', font),
+                ],
+                if (es2Planos && m2 != null) ...[
+                  pw.SizedBox(height: 4),
+                  _fila('Masa P2', '${m2.modulo.toStringAsFixed(3)} g', font, fontBold: fontBold),
+                  _fila('Ángulo P2', '${m2.anguloGrados.toStringAsFixed(2)}°', font, fontBold: fontBold),
+                  if (config?.tipo == TipoRotor.discreto)
+                    _fila('Álabe sugerido P2',
+                        '${provider.sugerirAlabe(m2.anguloGrados) ?? 'N/A'}', font),
+                ],
+                pw.SizedBox(height: 8),
+                pw.Center(child: pw.Image(imgFin, width: 280, height: 280)),
+              ],
+            ),
+          ),
 
           // ── 7. Vibración de Verificación / Resultados Finales ────────────
-          if (imgVerif != null && provider.vVerificacion != null) ...[
-            _sectionTitle('7. Vibración de Verificación / Resultados Finales', font),
-            ...verifWidgets,
-            pw.SizedBox(height: 8),
-            pw.Center(child: pw.Image(imgVerif, width: 280, height: 280)),
-          ],
+          if (imgVerif != null && provider.vVerificacion != null)
+            pw.Inseparable(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  _sectionTitle('7. Vibración de Verificación / Resultados Finales', font),
+                  ...verifWidgets,
+                  pw.SizedBox(height: 8),
+                  pw.Center(child: pw.Image(imgVerif, width: 280, height: 280)),
+                ],
+              ),
+            ),
 
           // ── 8. Historial de Iteraciones ──────────────────────────────────
           _sectionTitle('8. Historial de Iteraciones', font),

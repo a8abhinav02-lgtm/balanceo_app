@@ -877,7 +877,12 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
           children: [
             Icon(Icons.edit, color: Colors.blue),
             SizedBox(width: 8),
-            Text('Ajustar Peso Real Instalado'),
+            Expanded(
+              child: Text(
+                'Ajustar Peso Real',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(
