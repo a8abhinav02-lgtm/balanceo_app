@@ -328,10 +328,16 @@ class PdfExport {
     // Pre-calculate history table headers and data
     final List<String> tableHeaders = [
       'It.',
-      'Masa P1 (g)',
-      'Ángulo P1 (°)',
-      if (es2Planos) 'Masa P2 (g)',
-      if (es2Planos) 'Ángulo P2 (°)',
+      'M1 Teor(g)',
+      'Ang1 Teor',
+      'M1 Real(g)',
+      'Ang1 Real',
+      if (es2Planos) ...[
+        'M2 Teor(g)',
+        'Ang2 Teor',
+        'M2 Real(g)',
+        'Ang2 Real',
+      ],
     ];
     if (config != null) {
       for (final canal in config.canales) {
@@ -346,10 +352,16 @@ class PdfExport {
     for (final item in provider.historial) {
       final List<String> row = [
         '${item.iteracion}',
-        item.masaPlano1?.modulo.toStringAsFixed(3) ?? 'N/A',
-        item.masaPlano1?.anguloGrados.toStringAsFixed(2) ?? 'N/A',
-        if (es2Planos) item.masaPlano2?.modulo.toStringAsFixed(3) ?? 'N/A',
-        if (es2Planos) item.masaPlano2?.anguloGrados.toStringAsFixed(2) ?? 'N/A',
+        item.masaPlano1?.modulo.toStringAsFixed(2) ?? 'N/A',
+        provider.ajustarAngulo(item.masaPlano1?.anguloGrados ?? 0).toStringAsFixed(1) + '°',
+        item.realPlano1?.modulo.toStringAsFixed(2) ?? 'N/A',
+        provider.ajustarAngulo(item.realPlano1?.anguloGrados ?? 0).toStringAsFixed(1) + '°',
+        if (es2Planos) ...[
+          item.masaPlano2?.modulo.toStringAsFixed(2) ?? 'N/A',
+          provider.ajustarAngulo(item.masaPlano2?.anguloGrados ?? 0).toStringAsFixed(1) + '°',
+          item.realPlano2?.modulo.toStringAsFixed(2) ?? 'N/A',
+          provider.ajustarAngulo(item.realPlano2?.anguloGrados ?? 0).toStringAsFixed(1) + '°',
+        ],
       ];
       if (config != null) {
         for (int i = 0; i < config.canales.length; i++) {
@@ -439,23 +451,30 @@ class PdfExport {
           ],
 
           // ── 5. Coeficientes de Influencia ────────────────────────────────
-          _sectionTitle('5. Coeficientes de Influencia (H)', font),
-          if (!es2Planos && provider.coeficiente1 != null) ...[
-            _fila('Sensor de cálculo', provider.usarSensorX ? tag1 : tag2, font),
-            _vectorFila('H1', provider.coeficiente1!, '$unidad/g', font, 
-                fontBold: fontBold,
-                suffix: (provider.coeficiente1!.anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
-          ],
-          if (es2Planos && provider.matrizCoeficientes != null) ...[
-            _vectorFila('H11', provider.matrizCoeficientes![0][0], '$unidad/g', font,
-                suffix: (provider.matrizCoeficientes![0][0].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
-            _vectorFila('H12', provider.matrizCoeficientes![0][1], '$unidad/g', font,
-                suffix: (provider.matrizCoeficientes![0][1].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
-            _vectorFila('H21', provider.matrizCoeficientes![1][0], '$unidad/g', font,
-                suffix: (provider.matrizCoeficientes![1][0].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
-            _vectorFila('H22', provider.matrizCoeficientes![1][1], '$unidad/g', font,
-                suffix: (provider.matrizCoeficientes![1][1].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
-          ],
+          pw.Inseparable(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                _sectionTitle('5. Coeficientes de Influencia (H)', font),
+                if (!es2Planos && provider.coeficiente1 != null) ...[
+                  _fila('Sensor de cálculo', provider.usarSensorX ? tag1 : tag2, font),
+                  _vectorFila('H1', provider.coeficiente1!, '$unidad/g', font, 
+                      fontBold: fontBold,
+                      suffix: (provider.coeficiente1!.anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
+                ],
+                if (es2Planos && provider.matrizCoeficientes != null) ...[
+                  _vectorFila('H11', provider.matrizCoeficientes![0][0], '$unidad/g', font,
+                      suffix: (provider.matrizCoeficientes![0][0].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
+                  _vectorFila('H12', provider.matrizCoeficientes![0][1], '$unidad/g', font,
+                      suffix: (provider.matrizCoeficientes![0][1].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
+                  _vectorFila('H21', provider.matrizCoeficientes![1][0], '$unidad/g', font,
+                      suffix: (provider.matrizCoeficientes![1][0].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
+                  _vectorFila('H22', provider.matrizCoeficientes![1][1], '$unidad/g', font,
+                      suffix: (provider.matrizCoeficientes![1][1].anguloGrados % 360 > 180) ? ' (Lead)' : ' (Lag)'),
+                ],
+              ],
+            ),
+          ),
 
           // ── 6. Masa Correctora ───────────────────────────────────────────
           _sectionTitle('6. Masa Correctora - It. $iteracion', font),
@@ -490,16 +509,31 @@ class PdfExport {
           if (provider.historial.isEmpty)
             pw.Text('No hay iteraciones registradas en el historial.',
                 style: pw.TextStyle(font: font, fontSize: 10, color: PdfColors.grey))
-          else
+          else ...[
             pw.TableHelper.fromTextArray(
               border: pw.TableBorder.all(color: PdfColors.grey400),
               headerStyle: pw.TextStyle(font: font, fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
               headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
-              cellStyle: pw.TextStyle(font: font, fontSize: 9),
-              cellPadding: const pw.EdgeInsets.all(4),
+              cellStyle: pw.TextStyle(font: font, fontSize: 8),
+              cellPadding: const pw.EdgeInsets.all(3),
               headers: tableHeaders,
               data: tableData,
             ),
+            pw.SizedBox(height: 8),
+            pw.Text(
+              'Masa Real Acumulada Final en Rotor:',
+              style: pw.TextStyle(font: font, fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
+            ),
+            pw.Bullet(
+              text: 'Plano 1: ${provider.calcularMasaRealAcumuladaPlano1().modulo.toStringAsFixed(2)} g @ ${provider.ajustarAngulo(provider.calcularMasaRealAcumuladaPlano1().anguloGrados).toStringAsFixed(1)}°',
+              style: pw.TextStyle(font: font, fontSize: 8),
+            ),
+            if (es2Planos)
+              pw.Bullet(
+                text: 'Plano 2: ${provider.calcularMasaRealAcumuladaPlano2().modulo.toStringAsFixed(2)} g @ ${provider.ajustarAngulo(provider.calcularMasaRealAcumuladaPlano2().anguloGrados).toStringAsFixed(1)}°',
+                style: pw.TextStyle(font: font, fontSize: 8),
+              ),
+          ],
 
           // ── 9. Recomendaciones ───────────────────────────────────────────
           _sectionTitle('9. Recomendaciones', font),

@@ -4,6 +4,7 @@ import '../providers/balanceo_provider.dart';
 import '../widgets/polar_plot.dart';
 import '../widgets/resultado_card.dart';
 import '../models/complejo.dart';
+import '../models/rotor_config.dart';
 import '../utils/pdf_export.dart';
 import 'guia_screen.dart';
 
@@ -332,6 +333,99 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                   const SizedBox(height: 16),
                   ResultadoCard(masa: m1, titulo: es2Planos ? 'Plano 1' : 'Masa Correctora', numeroPlano: 1),
                   if (es2Planos && m2 != null) ResultadoCard(masa: m2, titulo: 'Plano 2', numeroPlano: 2),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.teal.shade200),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.check_box, color: Colors.teal.shade700),
+                                    const SizedBox(width: 8),
+                                    const Expanded(
+                                      child: Text(
+                                        'Masa Real Instalada',
+                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                tooltip: 'Ajustar peso real',
+                                onPressed: () => _mostrarDialogoAjustarPesoReal(context, provider, m1, m2, es2Planos),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Plano 1: ${((provider.masaRealInstalada1 ?? m1)?.modulo ?? 0).toStringAsFixed(2)} g @ ${provider.ajustarAngulo((provider.masaRealInstalada1 ?? m1)?.anguloGrados ?? 0).toStringAsFixed(1)}°',
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                          ),
+                          if (es2Planos && m2 != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Plano 2: ${((provider.masaRealInstalada2 ?? m2)?.modulo ?? 0).toStringAsFixed(2)} g @ ${provider.ajustarAngulo((provider.masaRealInstalada2 ?? m2)?.anguloGrados ?? 0).toStringAsFixed(1)}°',
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (esRefinamiento) ...[
+                    const SizedBox(height: 8),
+                    Card(
+                      color: Colors.blue.shade50,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.blue.shade200),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.history, color: Colors.blue),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Masa Real Acumulada Previa en Rotor',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Plano 1: ${provider.calcularMasaRealAcumuladaPlano1().modulo.toStringAsFixed(2)} g @ ${provider.ajustarAngulo(provider.calcularMasaRealAcumuladaPlano1().anguloGrados).toStringAsFixed(1)}°',
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            if (es2Planos) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'Plano 2: ${provider.calcularMasaRealAcumuladaPlano2().modulo.toStringAsFixed(2)} g @ ${provider.ajustarAngulo(provider.calcularMasaRealAcumuladaPlano2().anguloGrados).toStringAsFixed(1)}°',
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -483,7 +577,13 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                     final residuales = provider.vVerificacion != null
                         ? provider.vVerificacion!.map((v) => v.modulo).toList()
                         : provider.v0?.map((v) => v.modulo).toList() ?? [];
-                    provider.agregarAlHistorial(m1, m2, residuales);
+                    provider.agregarAlHistorial(
+                      m1, m2,
+                      residuales,
+                      mReal1: provider.masaRealInstalada1 ?? m1,
+                      mReal2: provider.masaRealInstalada2 ?? m2,
+                      vibracionesComplejas: provider.vVerificacion ?? provider.v0,
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Guardado en historial')));
                   },
                   icon: const Icon(Icons.save),
@@ -744,6 +844,110 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                 }
               });
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _mostrarDialogoAjustarPesoReal(
+    BuildContext context,
+    BalanceoProvider provider,
+    Complejo? m1,
+    Complejo? m2,
+    bool es2Planos,
+  ) {
+    final amp1Controller = TextEditingController(
+      text: (provider.masaRealInstalada1 ?? m1)?.modulo.toStringAsFixed(2) ?? '',
+    );
+    final ang1Controller = TextEditingController(
+      text: provider.ajustarAngulo((provider.masaRealInstalada1 ?? m1)?.anguloGrados ?? 0).toStringAsFixed(1),
+    );
+    final amp2Controller = TextEditingController(
+      text: (provider.masaRealInstalada2 ?? m2)?.modulo.toStringAsFixed(2) ?? '',
+    );
+    final ang2Controller = TextEditingController(
+      text: provider.ajustarAngulo((provider.masaRealInstalada2 ?? m2)?.anguloGrados ?? 0).toStringAsFixed(1),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.edit, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('Ajustar Peso Real Instalado'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Ingrese los pesos reales que se instalaron en el rotor.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              if (m1 != null) ...[
+                Text(es2Planos ? 'Plano 1' : 'Masa Correctora', style: const TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: amp1Controller,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Masa (g)', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: ang1Controller,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Ángulo (°)', border: OutlineInputBorder()),
+                ),
+              ],
+              if (es2Planos && m2 != null) ...[
+                const SizedBox(height: 16),
+                const Text('Plano 2', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: amp2Controller,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Masa (g)', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: ang2Controller,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(labelText: 'Ángulo (°)', border: OutlineInputBorder()),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (m1 != null) {
+                final amp = double.tryParse(amp1Controller.text) ?? 0.0;
+                final ang = double.tryParse(ang1Controller.text) ?? 0.0;
+                final anguloFisico = provider.config?.sentido == SentidoGiro.horario ? -ang : ang;
+                provider.masaRealInstalada1 = Complejo.desdePolar(amp, anguloFisico);
+              }
+              if (es2Planos && m2 != null) {
+                final amp = double.tryParse(amp2Controller.text) ?? 0.0;
+                final ang = double.tryParse(ang2Controller.text) ?? 0.0;
+                final anguloFisico = provider.config?.sentido == SentidoGiro.horario ? -ang : ang;
+                provider.masaRealInstalada2 = Complejo.desdePolar(amp, anguloFisico);
+              }
+              provider.saveToDisk();
+              Navigator.pop(context);
+              setState(() {});
+            },
+            child: const Text('Aceptar'),
           ),
         ],
       ),

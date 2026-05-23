@@ -210,7 +210,9 @@ void main() {
       
       // Add three items to history
       provider.agregarAlHistorial(Complejo(1, 0), null, [1.5]);
+      provider.iteracion = 2;
       provider.agregarAlHistorial(Complejo(2, 0), null, [1.0]);
+      provider.iteracion = 3;
       provider.agregarAlHistorial(Complejo(3, 0), null, [0.5]);
       
       await provider.saveToDisk();
@@ -242,6 +244,82 @@ void main() {
       expect(anotherProvider.historial[0].iteracion, equals(1));
       expect(anotherProvider.historial[1].iteracion, equals(2));
       expect(anotherProvider.iteracion, equals(3));
+    });
+
+    test('Actual weights refinement and cumulative mass calculations', () async {
+      final provider = BalanceoProvider();
+      
+      final canales = [
+        CanalMedicion(tag: '1H', angulo: 0, idSoporte: 1, direccion: 'H', peso: 1.0),
+      ];
+      provider.config = RotorConfig(
+        nombreActivo: 'Refinement Test Rotor',
+        numPlanos: 1,
+        canales: canales,
+      );
+
+      // Define initial run
+      final v0 = [Complejo(10, 0)];
+      provider.v0 = v0;
+      provider.v0Original = List.from(v0);
+      
+      // Trial run: Trial weight = 5 + 0j
+      provider.mt1Temp = Complejo(5, 0);
+      // Trial run vibration: V1 = 5 + 0j
+      provider.v1Temp = [Complejo(5, 0)];
+      
+      // Initial influence coefficient calculation: (5 - 10)/5 = -1
+      provider.matrizCoeficientes = [
+        [Complejo(-1, 0)]
+      ];
+      
+      // First iteration correction calculation (theoretical): -10 / -1 = 10
+      final mc = provider.calcularCorreccion1Plano();
+      expect(mc!.real, closeTo(10.0, 1e-5));
+      
+      // Technician installs actual weight: 9.0 + 0j (instead of 10.0)
+      provider.masaRealInstalada1 = Complejo(9, 0);
+      
+      // Technician measures residual vibration: V_residual = 1.0 + 0j
+      // And starts a new iteration
+      provider.nuevaIteracion([Complejo(1, 0)]);
+      
+      // This should auto-save Iteration 1 to history and trigger refinement of influence coefficients
+      expect(provider.historial.length, equals(1));
+      expect(provider.historial[0].masaPlano1!.real, closeTo(10.0, 1e-5));
+      expect(provider.historial[0].realPlano1!.real, closeTo(9.0, 1e-5));
+      
+      // The cumulative real weight on rotor should be 9.0 + 0j
+      expect(provider.calcularMasaRealAcumuladaPlano1().real, closeTo(9.0, 1e-5));
+      
+      // Recalculated influence coefficient alpha should be:
+      // (V_residual - V0) / m_acumulada = (1.0 - 10.0) / 9.0 = -9.0 / 9.0 = -1.0
+      expect(provider.matrizCoeficientes![0][0].real, closeTo(-1.0, 1e-5));
+      
+      // Second iteration: recommended additional weight: -V_current / alpha = -1.0 / -1.0 = 1.0 + 0j
+      final mc2 = provider.calcularCorreccion1Plano();
+      expect(mc2!.real, closeTo(1.0, 1e-5));
+      
+      // Technician installs actual weight for second iteration: 1.2 + 0j
+      provider.masaRealInstalada1 = Complejo(1.2, 0);
+      
+      // Check cumulative real weight calculations before saving
+      provider.agregarAlHistorial(
+        mc2, null, [0.5],
+        mReal1: Complejo(1.2, 0),
+        vibracionesComplejas: [Complejo(0.5, 0)]
+      );
+      
+      // Cumulative real mass after second iteration should be 9.0 + 1.2 = 10.2 + 0j
+      expect(provider.calcularMasaRealAcumuladaPlano1().real, closeTo(10.2, 1e-5));
+      
+      // Verify persistence to disk and load
+      await provider.saveToDisk();
+      
+      final anotherProvider = BalanceoProvider();
+      await anotherProvider.cargarActivo('Refinement Test Rotor');
+      expect(anotherProvider.historial.length, equals(2));
+      expect(anotherProvider.calcularMasaRealAcumuladaPlano1().real, closeTo(10.2, 1e-5));
     });
   });
 }

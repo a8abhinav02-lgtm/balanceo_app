@@ -17,6 +17,8 @@ class BalanceoProvider extends ChangeNotifier {
   Complejo? mt2Temp;
   List<List<Complejo>>? matrizCoeficientes;
   List<Complejo>? vVerificacion;
+  Complejo? masaRealInstalada1;
+  Complejo? masaRealInstalada2;
 
   // Propiedades de compatibilidad retroactiva
   Complejo? get v0_1 => (v0 != null && v0!.isNotEmpty) ? v0![0] : null;
@@ -202,6 +204,8 @@ class BalanceoProvider extends ChangeNotifier {
         iteracion = state['iteracion'] as int? ?? 1;
         pasoActual = state['pasoActual'] as int? ?? 1;
         vVerificacion = (state['vVerificacion'] as List?)?.map((e) => Complejo(e['real'] as double, e['imag'] as double)).toList();
+        masaRealInstalada1 = state['masaRealInstalada1'] != null ? Complejo(state['masaRealInstalada1']['real'] as double, state['masaRealInstalada1']['imag'] as double) : null;
+        masaRealInstalada2 = state['masaRealInstalada2'] != null ? Complejo(state['masaRealInstalada2']['real'] as double, state['masaRealInstalada2']['imag'] as double) : null;
       } catch (e) {
         // Fallback robusto
       }
@@ -215,6 +219,8 @@ class BalanceoProvider extends ChangeNotifier {
       matrizCoeficientes = null;
       iteracion = 1;
       vVerificacion = null;
+      masaRealInstalada1 = null;
+      masaRealInstalada2 = null;
     }
     
     notifyListeners();
@@ -244,6 +250,8 @@ class BalanceoProvider extends ChangeNotifier {
       'iteracion': iteracion,
       'pasoActual': pasoActual,
       'vVerificacion': vVerificacion?.map((e) => {'real': e.real, 'imag': e.imaginario}).toList(),
+      'masaRealInstalada1': masaRealInstalada1 != null ? {'real': masaRealInstalada1!.real, 'imag': masaRealInstalada1!.imaginario} : null,
+      'masaRealInstalada2': masaRealInstalada2 != null ? {'real': masaRealInstalada2!.real, 'imag': masaRealInstalada2!.imaginario} : null,
     };
     await prefs.setString('state_$nombre', jsonEncode(state));
   }
@@ -258,6 +266,8 @@ class BalanceoProvider extends ChangeNotifier {
     matrizCoeficientes = null;
     iteracion = 1;
     vVerificacion = null;
+    masaRealInstalada1 = null;
+    masaRealInstalada2 = null;
     // El historial no se borra, se mantiene por activo
     saveToDisk();
   }
@@ -393,23 +403,203 @@ class BalanceoProvider extends ChangeNotifier {
     return [m1, m2];
   }
 
-  void agregarAlHistorial(Complejo? m1, Complejo? m2, List<double> residuales) {
-    historial.add(HistorialItem(
-      iteracion: historial.length + 1,
+  Complejo calcularMasaRealAcumuladaPlano1() {
+    Complejo total = Complejo(0, 0);
+    for (var item in historial) {
+      if (item.realPlano1 != null) {
+        total = total + item.realPlano1!;
+      }
+    }
+    return total;
+  }
+
+  Complejo calcularMasaRealAcumuladaPlano2() {
+    Complejo total = Complejo(0, 0);
+    for (var item in historial) {
+      if (item.realPlano2 != null) {
+        total = total + item.realPlano2!;
+      }
+    }
+    return total;
+  }
+
+  void refinarCoeficientes() {
+    if (v0Original == null || config == null) return;
+    final numCanales = v0Original!.length;
+
+    if (numPlanos == 1) {
+      if (mt1Temp == null || v1Temp == null) return;
+
+      List<Complejo> xPoints = [mt1Temp!];
+      List<List<Complejo>> yPoints = List.generate(numCanales, (i) => [v1Temp![i] - v0Original![i]]);
+
+      Complejo mAcumulada = Complejo(0, 0);
+      for (var item in historial) {
+        if (item.realPlano1 != null) {
+          mAcumulada = mAcumulada + item.realPlano1!;
+        }
+        if (item.vibracionesComplejasResiduales != null && item.vibracionesComplejasResiduales!.length == numCanales) {
+          xPoints.add(mAcumulada);
+          for (int i = 0; i < numCanales; i++) {
+            yPoints[i].add(item.vibracionesComplejasResiduales![i] - v0Original![i]);
+          }
+        }
+      }
+
+      List<List<Complejo>> nuevosCoefs = [];
+      for (int i = 0; i < numCanales; i++) {
+        Complejo num = Complejo(0, 0);
+        double den = 0.0;
+        for (int p = 0; p < xPoints.length; p++) {
+          Complejo x = xPoints[p];
+          Complejo y = yPoints[i][p];
+          Complejo term = x.conjugado * y;
+          num = num + term;
+          den += x.real * x.real + x.imaginario * x.imaginario;
+        }
+        if (den.abs() > 1e-11) {
+          nuevosCoefs.add([num / Complejo(den, 0)]);
+        } else {
+          nuevosCoefs.add([matrizCoeficientes != null ? matrizCoeficientes![i][0] : Complejo(0, 0)]);
+        }
+      }
+      matrizCoeficientes = nuevosCoefs;
+    } else if (numPlanos == 2) {
+      if (mt1Temp == null || mt2Temp == null || v1Temp == null || v2Temp == null) return;
+
+      List<List<Complejo>> xPoints = [
+        [mt1Temp!, Complejo(0, 0)],
+        [Complejo(0, 0), mt2Temp!]
+      ];
+      List<List<Complejo>> yPoints = List.generate(numCanales, (i) => [
+        v1Temp![i] - v0Original![i],
+        v2Temp![i] - v0Original![i]
+      ]);
+
+      Complejo mAcumulada1 = Complejo(0, 0);
+      Complejo mAcumulada2 = Complejo(0, 0);
+      for (var item in historial) {
+        if (item.realPlano1 != null) {
+          mAcumulada1 = mAcumulada1 + item.realPlano1!;
+        }
+        if (item.realPlano2 != null) {
+          mAcumulada2 = mAcumulada2 + item.realPlano2!;
+        }
+        if (item.vibracionesComplejasResiduales != null && item.vibracionesComplejasResiduales!.length == numCanales) {
+          xPoints.add([mAcumulada1, mAcumulada2]);
+          for (int i = 0; i < numCanales; i++) {
+            yPoints[i].add(item.vibracionesComplejasResiduales![i] - v0Original![i]);
+          }
+        }
+      }
+
+      double a11 = 0;
+      Complejo a12 = Complejo(0, 0);
+      double a22 = 0;
+
+      for (int p = 0; p < xPoints.length; p++) {
+        Complejo x1 = xPoints[p][0];
+        Complejo x2 = xPoints[p][1];
+
+        a11 += x1.real * x1.real + x1.imaginario * x1.imaginario;
+        a12 = a12 + (x1.conjugado * x2);
+        a22 += x2.real * x2.real + x2.imaginario * x2.imaginario;
+      }
+
+      Complejo a21 = a12.conjugado;
+      double a12MagSq = a12.real * a12.real + a12.imaginario * a12.imaginario;
+      double det = a11 * a22 - a12MagSq;
+
+      if (det.abs() > 1e-11) {
+        List<List<Complejo>> nuevosCoefs = [];
+        for (int i = 0; i < numCanales; i++) {
+          Complejo b1 = Complejo(0, 0);
+          Complejo b2 = Complejo(0, 0);
+          for (int p = 0; p < xPoints.length; p++) {
+            Complejo x1 = xPoints[p][0];
+            Complejo x2 = xPoints[p][1];
+            Complejo y = yPoints[i][p];
+
+            b1 = b1 + (x1.conjugado * y);
+            b2 = b2 + (x2.conjugado * y);
+          }
+
+          Complejo c1 = (Complejo(a22, 0) * b1 - a12 * b2) / Complejo(det, 0);
+          Complejo c2 = (Complejo(a11, 0) * b2 - a21 * b1) / Complejo(det, 0);
+          nuevosCoefs.add([c1, c2]);
+        }
+        matrizCoeficientes = nuevosCoefs;
+      }
+    }
+  }
+
+  void agregarAlHistorial(
+    Complejo? m1, Complejo? m2,
+    List<double> residuales, {
+    Complejo? mReal1, Complejo? mReal2,
+    List<Complejo>? vibracionesComplejas,
+  }) {
+    final index = historial.indexWhere((element) => element.iteracion == iteracion);
+    final item = HistorialItem(
+      iteracion: iteracion,
       masaPlano1: m1,
       masaPlano2: m2,
+      masaRealPlano1: mReal1,
+      masaRealPlano2: mReal2,
       vibracionesResiduales: residuales,
-    ));
+      vibracionesComplejasResiduales: vibracionesComplejas,
+    );
+
+    if (index != -1) {
+      historial[index] = item;
+    } else {
+      historial.add(item);
+    }
     saveToDisk();
     notifyListeners();
   }
 
   /// Registra una nueva medición residual tras instalar las masas correctoras.
   void nuevaIteracion(List<Complejo> nuevasLecturas) {
+    bool yaGuardado = historial.any((element) => element.iteracion == iteracion);
+    if (!yaGuardado) {
+      Complejo? m1;
+      Complejo? m2;
+      if (numPlanos == 1) {
+        m1 = calcularCorreccion1Plano();
+      } else {
+        final corrections = calcularCorreccion2Planos();
+        m1 = corrections[0];
+        m2 = corrections[1];
+      }
+      
+      agregarAlHistorial(
+        m1, m2,
+        nuevasLecturas.map((e) => e.modulo).toList(),
+        mReal1: masaRealInstalada1 ?? m1,
+        mReal2: masaRealInstalada2 ?? m2,
+        vibracionesComplejas: nuevasLecturas,
+      );
+    } else {
+      final idx = historial.indexWhere((element) => element.iteracion == iteracion);
+      if (idx != -1) {
+        historial[idx] = historial[idx].copyWith(
+          vibracionesResiduales: nuevasLecturas.map((e) => e.modulo).toList(),
+          vibracionesComplejasResiduales: nuevasLecturas,
+        );
+      }
+    }
+
+    refinarCoeficientes();
+
     v0 = nuevasLecturas;
     iteracion++;
     pasoActual = 3;
-    vVerificacion = null; // Reiniciar verificación para la nueva iteración
+    vVerificacion = null;
+    
+    masaRealInstalada1 = null;
+    masaRealInstalada2 = null;
+
     saveToDisk();
     notifyListeners();
   }
