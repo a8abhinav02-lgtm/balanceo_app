@@ -307,7 +307,13 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                 children: [
                   Row(
                     children: [
-                      const Text('Masas Correctoras Calculadas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      const Expanded(
+                        child: Text(
+                          'Masas Correctoras Calculadas',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       if (esRefinamiento) ...[
                         const SizedBox(width: 8),
                         Container(
@@ -365,7 +371,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                               ),
                               IconButton(
                                 icon: const Icon(Icons.edit, color: Colors.blue),
-                                tooltip: 'Ajustar peso real',
+                                tooltip: 'Editar',
                                 onPressed: () => _mostrarDialogoAjustarPesoReal(context, provider, m1, m2, es2Planos),
                               ),
                             ],
@@ -403,9 +409,12 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                               children: [
                                 Icon(Icons.history, color: Colors.blue),
                                 SizedBox(width: 8),
-                                Text(
-                                  'Masa Real Acumulada Previa en Rotor',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue),
+                                Expanded(
+                                  child: Text(
+                                    'Masa Real Acumulada Previa en Rotor',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ],
                             ),
@@ -528,10 +537,14 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      (i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}',
-                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                    Expanded(
+                                      child: Text(
+                                        (i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}',
+                                        style: const TextStyle(fontWeight: FontWeight.w600),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
+                                    const SizedBox(width: 8),
                                     Text(
                                       '${provider.vVerificacion![i].modulo.toStringAsFixed(2)} ${config.unidadStr} @ ${provider.vVerificacion![i].anguloGrados.toStringAsFixed(1)}°',
                                       style: TextStyle(color: Colors.teal.shade900, fontWeight: FontWeight.bold),
@@ -606,13 +619,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Row(
-            children: [
-              const Icon(Icons.refresh, color: Colors.orange),
-              const SizedBox(width: 8),
-              Text('Iteración ${provider.iteracion + 1}'),
-            ],
-          ),
+          title: Text('Iteración ${provider.iteracion + 1}'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -681,13 +688,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.refresh, color: Colors.orange),
-            const SizedBox(width: 8),
-            Text('Iteración ${provider.iteracion + 1}'),
-          ],
-        ),
+        title: Text('Iteración ${provider.iteracion + 1}'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -769,13 +770,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.teal.shade700),
-            const SizedBox(width: 8),
-            const Text('Registrar Verificación'),
-          ],
-        ),
+        title: const Text('Registrar Verificación'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -873,18 +868,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.edit, color: Colors.blue),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Ajustar Peso Real',
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+        title: const Text('Ajustar Peso Real'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
