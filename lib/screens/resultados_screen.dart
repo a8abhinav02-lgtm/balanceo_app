@@ -203,19 +203,20 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
       List<Color> cVer = [];
       List<String> eVer = [];
 
-      if (provider.v0 != null) {
-        for (int i = 0; i < provider.v0!.length; i++) {
+      final List<Complejo>? initialVectors = provider.v0Original ?? provider.v0;
+      if (initialVectors != null) {
+        for (int i = 0; i < initialVectors.length; i++) {
           final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
-          vVer.add(provider.v0![i]);
+          vVer.add(initialVectors[i]);
           cVer.add(coloresCanales[i % coloresCanales.length].withOpacity(0.3));
-          eVer.add('$tag (Ini.)');
+          eVer.add('$tag (inicial)');
         }
       }
       for (int i = 0; i < provider.vVerificacion!.length; i++) {
         final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
         vVer.add(provider.vVerificacion![i]);
         cVer.add(coloresCanales[i % coloresCanales.length]);
-        eVer.add('$tag (Verif.)');
+        eVer.add('$tag (final)');
       }
 
       double maxAmpVer = vVer.isEmpty ? 10.0 : vVer.map((v) => v.modulo).reduce((a, b) => a > b ? a : b);
@@ -487,24 +488,14 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => _mostrarDialogoRegistrarVerificacion(context, provider),
-                      icon: const Icon(Icons.check_circle_outline),
-                      label: const Text('Registrar Vibración de Verificación'),
+                      onPressed: () => _mostrarDialogoRegistrarVibracionResidual(context, provider),
+                      icon: const Icon(Icons.insights),
+                      label: const Text('Registrar Vibración Residual'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         backgroundColor: Colors.teal.shade700,
                         foregroundColor: Colors.white,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _mostrarDialogoNuevaIteracion(context, provider),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Nueva Iteración (Refinar)'),
-                      style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 12)),
                     ),
                   ),
                   if (provider.vVerificacion != null && config != null) ...[
@@ -611,137 +602,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
     );
   }
 
-  void _mostrarDialogoNuevaIteracion(BuildContext context, BalanceoProvider provider) {
-    final config = provider.config;
-    if (config == null) return;
-
-    if (provider.vVerificacion != null) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Iteración ${provider.iteracion + 1}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Se detectó una vibración de verificación registrada para esta iteración.',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '¿Desea iniciar la nueva iteración utilizando estos valores como la vibración inicial de la siguiente corrida?',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              for (int i = 0; i < provider.vVerificacion!.length; i++)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text(
-                    '${config.canales[i].tag}: ${provider.vVerificacion![i].modulo.toStringAsFixed(2)} ${config.unidadStr} @ ${provider.vVerificacion![i].anguloGrados.toStringAsFixed(1)}°',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _mostrarDialogoNuevaIteracionManual(context, provider);
-              },
-              child: const Text('Ingresar Manualmente'),
-            ),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.play_arrow),
-              label: const Text('Sí, Usar Valores'),
-              onPressed: () {
-                provider.nuevaIteracion(provider.vVerificacion!);
-                Navigator.pop(context);
-                setState(() => _currentPage = 0);
-              },
-            ),
-          ],
-        ),
-      );
-    } else {
-      _mostrarDialogoNuevaIteracionManual(context, provider);
-    }
-  }
-
-  void _mostrarDialogoNuevaIteracionManual(BuildContext context, BalanceoProvider provider) {
-    final config = provider.config;
-    if (config == null) return;
-    
-    final numCanales = config.canales.length;
-    final ampControllers = List.generate(numCanales, (_) => TextEditingController());
-    final faseControllers = List.generate(numCanales, (_) => TextEditingController());
-    final unidad = config.unidadStr;
-
-    final List<Color> coloresCanales = [
-      const Color(0xFF0D47A1), // Azul industrial
-      const Color(0xFFB71C1C), // Rojo rubí
-      const Color(0xFF1B5E20), // Verde bosque
-      const Color(0xFF4A148C), // Púrpura profundo
-    ];
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Iteración ${provider.iteracion + 1}'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Ingrese la vibración residual medida tras instalar las masas correctoras de la It. ${provider.iteracion}.',
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              for (int i = 0; i < numCanales; i++) ...[
-                Text(config.canales[i].tag, style: TextStyle(fontWeight: FontWeight.bold, color: coloresCanales[i % coloresCanales.length])),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: ampControllers[i],
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(labelText: 'Amplitud ($unidad)', border: const OutlineInputBorder()),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: faseControllers[i],
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Fase (°)', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 16),
-              ],
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.calculate),
-            label: const Text('Recalcular'),
-            style: ElevatedButton.styleFrom(),
-            onPressed: () {
-              List<Complejo> nuevasLecturas = [];
-              for (int i = 0; i < numCanales; i++) {
-                final amp = double.tryParse(ampControllers[i].text) ?? 0.0;
-                final fase = double.tryParse(faseControllers[i].text) ?? 0.0;
-                nuevasLecturas.add(Complejo.desdePolar(amp, fase));
-              }
-              provider.nuevaIteracion(nuevasLecturas);
-              Navigator.pop(context);
-              setState(() => _currentPage = 0);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _mostrarDialogoRegistrarVerificacion(BuildContext context, BalanceoProvider provider) {
+  void _mostrarDialogoRegistrarVibracionResidual(BuildContext context, BalanceoProvider provider) {
     final config = provider.config;
     if (config == null) return;
     
@@ -767,17 +628,28 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
       const Color(0xFF4A148C), // Púrpura profundo
     ];
 
+    Complejo? m1;
+    Complejo? m2;
+    final es2Planos = config.numPlanos == 2;
+    if (es2Planos) {
+      final correccion = provider.calcularCorreccion2Planos();
+      m1 = correccion[0];
+      m2 = correccion[1];
+    } else {
+      m1 = provider.calcularCorreccion1Plano();
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Registrar Verificación'),
+        title: const Text('Registrar Vibración Residual'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Ingrese la vibración de verificación (final) obtenida después de colocar los pesos de corrección.',
+                'Ingrese la vibración medida tras instalar las masas correctoras.',
                 style: TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 16),
@@ -803,12 +675,8 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
           ElevatedButton.icon(
-            icon: const Icon(Icons.save),
-            label: const Text('Registrar'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal.shade700,
-              foregroundColor: Colors.white,
-            ),
+            icon: const Icon(Icons.arrow_forward),
+            label: const Text('Siguiente'),
             onPressed: () {
               List<Complejo> lecturasVerif = [];
               for (int i = 0; i < numCanales; i++) {
@@ -816,21 +684,106 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                 final fase = double.tryParse(faseControllers[i].text) ?? 0.0;
                 lecturasVerif.add(Complejo.desdePolar(amp, fase));
               }
-              provider.registrarVerificacion(lecturasVerif);
-              Navigator.pop(context);
               
-              final es2Planos = config.numPlanos == 2;
-              int targetIndex = 1;
-              if (provider.v1Temp != null && provider.v1Temp!.isNotEmpty) {
-                targetIndex++;
-              }
-              if (es2Planos && provider.v2Temp != null && provider.v2Temp!.isNotEmpty) {
-                targetIndex++;
-              }
-              targetIndex++; // La página de verificación va después de las masas correctoras
+              _mostrarDialogoConfirmacionFin(context, provider, lecturasVerif, m1, m2, es2Planos);
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
+  void _mostrarDialogoConfirmacionFin(
+    BuildContext context,
+    BalanceoProvider provider,
+    List<Complejo> lecturasVerif,
+    Complejo? m1,
+    Complejo? m2,
+    bool es2Planos,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Vibración Residual Registrada'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '¿Desea dar por concluido el proceso de balanceo con estos valores o prefiere iniciar una nueva iteración de refinamiento?',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Valores ingresados:',
+              style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            for (int i = 0; i < lecturasVerif.length; i++)
+              Text(
+                '${provider.config?.canales[i].tag ?? 'Sensor ${i + 1}'}: ${lecturasVerif[i].modulo.toStringAsFixed(2)} ${provider.config?.unidadStr ?? 'µm'} @ ${lecturasVerif[i].anguloGrados.toStringAsFixed(1)}°',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Volver a editar'),
+          ),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.refresh),
+            label: const Text('Refinar (Nueva It.)'),
+            onPressed: () {
+              Navigator.pop(context); // Cierra confirmación
+              Navigator.pop(context); // Cierra diálogo de entrada
+              provider.nuevaIteracion(lecturasVerif);
+              
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (_pageController.hasClients) {
+                  _pageController.jumpToPage(0);
+                }
+              });
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Nueva iteración iniciada')),
+              );
+            },
+          ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.verified),
+            label: const Text('Concluir Balanceo'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal.shade700,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(context); // Cierra confirmación
+              Navigator.pop(context); // Cierra diálogo de entrada
+              provider.registrarVerificacion(lecturasVerif);
+              
+              final residuales = lecturasVerif.map((v) => v.modulo).toList();
+              provider.agregarAlHistorial(
+                m1, m2,
+                residuales,
+                mReal1: provider.masaRealInstalada1 ?? m1,
+                mReal2: provider.masaRealInstalada2 ?? m2,
+                vibracionesComplejas: lecturasVerif,
+              );
+              
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_pageController.hasClients) {
+                  final es2PlanosVal = provider.config?.numPlanos == 2;
+                  int targetIndex = 1;
+                  if (provider.v1Temp != null && provider.v1Temp!.isNotEmpty) {
+                    targetIndex++;
+                  }
+                  if (es2PlanosVal && provider.v2Temp != null && provider.v2Temp!.isNotEmpty) {
+                    targetIndex++;
+                  }
+                  targetIndex++;
+                  
                   _pageController.animateToPage(
                     targetIndex,
                     duration: const Duration(milliseconds: 500),
@@ -838,6 +791,10 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                   );
                 }
               });
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Balanceo concluido. Reporte PDF listo.')),
+              );
             },
           ),
         ],

@@ -247,7 +247,7 @@ class PdfExport {
           final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
           vVer.add(initialVectors[i]);
           cVer.add(coloresCanales[i % coloresCanales.length].withOpacity(0.3));
-          eVer.add('$tag (Ini.)');
+          eVer.add('$tag (inicial)');
         }
       }
 
@@ -256,7 +256,7 @@ class PdfExport {
         final tag = (config != null && i < config.canales.length) ? config.canales[i].tag : 'Sensor ${i + 1}';
         vVer.add(provider.vVerificacion![i]);
         cVer.add(coloresCanales[i % coloresCanales.length]);
-        eVer.add('$tag (Verif.)');
+        eVer.add('$tag (final)');
       }
 
       final double maxAmpVer = vVer.isEmpty ? 10.0 : vVer.map((v) => v.modulo).reduce((a, b) => a > b ? a : b);
@@ -318,7 +318,7 @@ class PdfExport {
               children: [
                 pw.Text(tag, style: pw.TextStyle(font: fontBold, fontSize: 10, color: PdfColors.blue800)),
                 _fila('  Vibración Inicial', iniText, font),
-                _fila('  Vibración Final (Verif.)', verText, font),
+                _fila('  Vibración Final', verText, font),
                 _fila('  Reducción de Vibración', redText, font, fontBold: fontBold),
                 pw.SizedBox(height: 4),
               ],
@@ -380,6 +380,12 @@ class PdfExport {
       }
       tableData.add(row);
     }
+
+    final int totalGraficos = 2 + (imgP1 != null ? 1 : 0) + (imgVerif != null && provider.vVerificacion != null ? 1 : 0);
+    const int idxIni = 1;
+    final int idxP1 = imgP1 != null ? 2 : 0;
+    final int idxFin = imgP1 != null ? 3 : 2;
+    final int idxVerif = provider.vVerificacion != null ? (imgP1 != null ? 4 : 3) : 0;
 
     // ── Construir PDF ─────────────────────────────────────────────────────────
     pdf.addPage(
@@ -446,6 +452,13 @@ class PdfExport {
                 ],
                 pw.SizedBox(height: 8),
                 pw.Center(child: pw.Image(imgIni, width: 280, height: 280)),
+                pw.SizedBox(height: 4),
+                pw.Center(
+                  child: pw.Text(
+                    'Gráfica $idxIni de $totalGraficos: ${esRef ? 'Vibración Residual (It.${iteracion - 1})' : 'Vibración Inicial'}',
+                    style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.grey700),
+                  ),
+                ),
               ],
             ),
           ),
@@ -462,6 +475,13 @@ class PdfExport {
                   ...trial1Widgets,
                   pw.SizedBox(height: 8),
                   pw.Center(child: pw.Image(imgP1, width: 280, height: 280)),
+                  pw.SizedBox(height: 4),
+                  pw.Center(
+                    child: pw.Text(
+                      'Gráfica $idxP1 de $totalGraficos: Efecto del Peso de Prueba P1',
+                      style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.grey700),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -515,6 +535,13 @@ class PdfExport {
                 ],
                 pw.SizedBox(height: 8),
                 pw.Center(child: pw.Image(imgFin, width: 280, height: 280)),
+                pw.SizedBox(height: 4),
+                pw.Center(
+                  child: pw.Text(
+                    'Gráfica $idxFin de $totalGraficos: Ubicación de Masas Correctoras',
+                    style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.grey700),
+                  ),
+                ),
               ],
             ),
           ),
@@ -529,73 +556,93 @@ class PdfExport {
                   ...verifWidgets,
                   pw.SizedBox(height: 8),
                   pw.Center(child: pw.Image(imgVerif, width: 280, height: 280)),
+                  pw.SizedBox(height: 4),
+                  pw.Center(
+                    child: pw.Text(
+                      'Gráfica $idxVerif de $totalGraficos: Resultados Finales (Inicial vs. Final)',
+                      style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.grey700),
+                    ),
+                  ),
                 ],
               ),
             ),
 
           // ── 8. Historial de Iteraciones ──────────────────────────────────
-          _sectionTitle('8. Historial de Iteraciones', font),
-          if (provider.historial.isEmpty)
-            pw.Text('No hay iteraciones registradas en el historial.',
-                style: pw.TextStyle(font: font, fontSize: 10, color: PdfColors.grey))
-          else ...[
-            pw.TableHelper.fromTextArray(
-              border: pw.TableBorder.all(color: PdfColors.grey400),
-              headerStyle: pw.TextStyle(font: font, fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-              headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
-              cellStyle: pw.TextStyle(font: font, fontSize: 8),
-              cellPadding: const pw.EdgeInsets.all(3),
-              headers: tableHeaders,
-              data: tableData,
+          pw.Inseparable(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                _sectionTitle('8. Historial de Iteraciones', font),
+                if (provider.historial.isEmpty)
+                  pw.Text('No hay iteraciones registradas en el historial.',
+                      style: pw.TextStyle(font: font, fontSize: 10, color: PdfColors.grey))
+                else ...[
+                  pw.TableHelper.fromTextArray(
+                    border: pw.TableBorder.all(color: PdfColors.grey400),
+                    headerStyle: pw.TextStyle(font: font, fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                    headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
+                    cellStyle: pw.TextStyle(font: font, fontSize: 8),
+                    cellPadding: const pw.EdgeInsets.all(3),
+                    headers: tableHeaders,
+                    data: tableData,
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Text(
+                    'Masa Real Acumulada Final en Rotor:',
+                    style: pw.TextStyle(font: font, fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
+                  ),
+                  pw.Bullet(
+                    text: 'Plano 1: ${provider.calcularMasaRealAcumuladaPlano1().modulo.toStringAsFixed(2)} g @ ${provider.ajustarAngulo(provider.calcularMasaRealAcumuladaPlano1().anguloGrados).toStringAsFixed(1)}°',
+                    style: pw.TextStyle(font: font, fontSize: 8),
+                  ),
+                  if (es2Planos)
+                    pw.Bullet(
+                      text: 'Plano 2: ${provider.calcularMasaRealAcumuladaPlano2().modulo.toStringAsFixed(2)} g @ ${provider.ajustarAngulo(provider.calcularMasaRealAcumuladaPlano2().anguloGrados).toStringAsFixed(1)}°',
+                      style: pw.TextStyle(font: font, fontSize: 8),
+                    ),
+                ],
+              ],
             ),
-            pw.SizedBox(height: 8),
-            pw.Text(
-              'Masa Real Acumulada Final en Rotor:',
-              style: pw.TextStyle(font: font, fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
-            ),
-            pw.Bullet(
-              text: 'Plano 1: ${provider.calcularMasaRealAcumuladaPlano1().modulo.toStringAsFixed(2)} g @ ${provider.ajustarAngulo(provider.calcularMasaRealAcumuladaPlano1().anguloGrados).toStringAsFixed(1)}°',
-              style: pw.TextStyle(font: font, fontSize: 8),
-            ),
-            if (es2Planos)
-              pw.Bullet(
-                text: 'Plano 2: ${provider.calcularMasaRealAcumuladaPlano2().modulo.toStringAsFixed(2)} g @ ${provider.ajustarAngulo(provider.calcularMasaRealAcumuladaPlano2().anguloGrados).toStringAsFixed(1)}°',
-                style: pw.TextStyle(font: font, fontSize: 8),
-              ),
-          ],
+          ),
 
           // ── 9. Recomendaciones ───────────────────────────────────────────
-          _sectionTitle('9. Recomendaciones', font),
-          ...[
-            '- Verificar la correcta instalación de las masas correctoras antes de arrancar.',
-            '- Confirmar la calibración del sistema de medición de fase (keyphasor).',
-            '- Realizar una medición de verificación tras instalar las masas.',
-            '- Documentar el proceso completo para futuros mantenimientos.',
-            '- Si la vibración residual supera el límite, iniciar nueva iteración de refinamiento.',
-          ].map((rec) => pw.Padding(
-                padding: const pw.EdgeInsets.symmetric(vertical: 2),
-                child: pw.Text(rec, style: pw.TextStyle(font: font, fontSize: 10)),
-              )),
-
-          pw.SizedBox(height: 30),
-          // Firma
-          pw.Row(children: [
-            pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
-              pw.SizedBox(height: 30),
-              pw.Divider(color: PdfColors.grey),
-              pw.Text('Firma del Técnico', style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey)),
-              pw.Text(config?.tecnico.isNotEmpty == true ? config!.tecnico : '________________________',
-                  style: pw.TextStyle(font: font, fontSize: 9)),
-            ])),
-            pw.SizedBox(width: 40),
-            pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
-              pw.SizedBox(height: 30),
-              pw.Divider(color: PdfColors.grey),
-              pw.Text('Fecha / Hora', style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey)),
-              pw.Text(DateTime.now().toLocal().toString().substring(0, 16),
-                  style: pw.TextStyle(font: font, fontSize: 9)),
-            ])),
-          ]),
+          pw.Inseparable(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                _sectionTitle('9. Recomendaciones', font),
+                ...[
+                  '- Verificar la correcta instalación de las masas correctoras antes de arrancar.',
+                  '- Confirmar la calibración del sistema de medición de fase (keyphasor).',
+                  '- Realizar una medición de verificación tras instalar las masas.',
+                  '- Documentar el proceso completo para futuros mantenimientos.',
+                  '- Si la vibración residual supera el límite, iniciar nueva iteración de refinamiento.',
+                ].map((rec) => pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                      child: pw.Text(rec, style: pw.TextStyle(font: font, fontSize: 10)),
+                    )),
+                pw.SizedBox(height: 30),
+                // Firma
+                pw.Row(children: [
+                  pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
+                    pw.SizedBox(height: 30),
+                    pw.Divider(color: PdfColors.grey),
+                    pw.Text('Firma del Técnico', style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey)),
+                    pw.Text(config?.tecnico.isNotEmpty == true ? config!.tecnico : '________________________',
+                        style: pw.TextStyle(font: font, fontSize: 9)),
+                  ])),
+                  pw.SizedBox(width: 40),
+                  pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.center, children: [
+                    pw.SizedBox(height: 30),
+                    pw.Divider(color: PdfColors.grey),
+                    pw.Text('Fecha / Hora', style: pw.TextStyle(font: font, fontSize: 9, color: PdfColors.grey)),
+                    pw.Text(DateTime.now().toLocal().toString().substring(0, 16),
+                        style: pw.TextStyle(font: font, fontSize: 9)),
+                  ])),
+                ]),
+              ],
+            ),
+          ),
         ],
       ),
     );
