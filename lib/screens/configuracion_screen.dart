@@ -19,6 +19,9 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _assetController = TextEditingController();
   final _tecnicoController = TextEditingController();
+  final _pesoRotorController = TextEditingController();
+  final _velocidadRPMController = TextEditingController();
+  final _radioPesoController = TextEditingController();
   late SentidoGiro _sentido;
   late TipoRotor _tipo;
   late int _numAlabes;
@@ -38,6 +41,9 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     final provider = Provider.of<BalanceoProvider>(context, listen: false);
     _assetController.text = provider.config?.nombreActivo ?? '';
     _tecnicoController.text = provider.config?.tecnico ?? '';
+    _pesoRotorController.text = provider.config?.pesoRotor?.toString() ?? '';
+    _velocidadRPMController.text = provider.config?.velocidadRPM?.toString() ?? '';
+    _radioPesoController.text = provider.config?.radioPeso?.toString() ?? '';
     _sentido = provider.config?.sentido ?? SentidoGiro.antihorario;
     _tipo = provider.config?.tipo ?? TipoRotor.continuo;
     _numAlabes = provider.config?.numAlabes ?? 0;
@@ -55,6 +61,9 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   void dispose() {
     _assetController.dispose();
     _tecnicoController.dispose();
+    _pesoRotorController.dispose();
+    _velocidadRPMController.dispose();
+    _radioPesoController.dispose();
     super.dispose();
   }
 
@@ -74,6 +83,9 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
           _anguloAlabe1 = provider.config!.anguloReferenciaAlabe1;
           _numeracionHoraria = provider.config!.numeracionHoraria;
           _unidadVibracion = provider.config!.unidadVibracion;
+          _pesoRotorController.text = provider.config!.pesoRotor?.toString() ?? '';
+          _velocidadRPMController.text = provider.config!.velocidadRPM?.toString() ?? '';
+          _radioPesoController.text = provider.config!.radioPeso?.toString() ?? '';
         });
       }
     });
@@ -409,6 +421,47 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Datos Dinámicos del Rotor (Opcionales)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 2),
+                    const Text('Datos empleados para sugerir masa de prueba y control de calidad ISO 1940', style: TextStyle(fontSize: 11, color: Color(0xFF616161))),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _pesoRotorController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Peso del rotor (kg)',
+                        prefixIcon: Icon(Icons.scale),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _velocidadRPMController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Velocidad de rotación (RPM)',
+                        prefixIcon: Icon(Icons.speed),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _radioPesoController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Radio de colocación de masa (mm)',
+                        prefixIcon: Icon(Icons.ads_click),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 32),
             const SizedBox(height: 16),
             const Text('Previsualización del Rotor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -468,6 +521,9 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                   numeracionHoraria: _numeracionHoraria,
                   unidadVibracion: _unidadVibracion,
                   tecnico: _tecnicoController.text.trim(),
+                  pesoRotor: double.tryParse(_pesoRotorController.text),
+                  velocidadRPM: double.tryParse(_velocidadRPMController.text),
+                  radioPeso: double.tryParse(_radioPesoController.text),
                 );
                 provider.setConfig(config).then((_) {
                   if (!context.mounted) return;

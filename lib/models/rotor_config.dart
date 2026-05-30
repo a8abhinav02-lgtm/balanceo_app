@@ -26,6 +26,11 @@ class RotorConfig {
   /// Nombre del técnico responsable del balanceo (para el reporte PDF).
   String tecnico;
 
+  // Nuevos campos para cálculos dinámicos de balanceo e ISO 1940
+  double? pesoRotor;
+  double? velocidadRPM;
+  double? radioPeso;
+
   // ── Getters de compatibilidad ──────────────────────────────────────────
   // Permiten que el código existente (polar_plot, pdf_export, etc.) siga
   // funcionando sin modificaciones inmediatas.
@@ -50,6 +55,9 @@ class RotorConfig {
     this.numeracionHoraria = false,
     this.unidadVibracion = UnidadVibracion.micras,
     this.tecnico = '',
+    this.pesoRotor,
+    this.velocidadRPM,
+    this.radioPeso,
   }) : canales = canales ?? CanalMedicion.defaultCanales();
 
   RotorConfig copyWith({
@@ -65,6 +73,9 @@ class RotorConfig {
     bool? numeracionHoraria,
     UnidadVibracion? unidadVibracion,
     String? tecnico,
+    double? pesoRotor,
+    double? velocidadRPM,
+    double? radioPeso,
   }) {
     return RotorConfig(
       nombreActivo: nombreActivo ?? this.nombreActivo,
@@ -79,6 +90,9 @@ class RotorConfig {
       numeracionHoraria: numeracionHoraria ?? this.numeracionHoraria,
       unidadVibracion: unidadVibracion ?? this.unidadVibracion,
       tecnico: tecnico ?? this.tecnico,
+      pesoRotor: pesoRotor ?? this.pesoRotor,
+      velocidadRPM: velocidadRPM ?? this.velocidadRPM,
+      radioPeso: radioPeso ?? this.radioPeso,
     );
   }
 
@@ -98,6 +112,9 @@ class RotorConfig {
     'numeracionHoraria': numeracionHoraria,
     'unidadVibracion': unidadVibracion.index,
     'tecnico': tecnico,
+    'pesoRotor': pesoRotor,
+    'velocidadRPM': velocidadRPM,
+    'radioPeso': radioPeso,
   };
 
   /// Deserialización con migración retrocompatible.
@@ -135,6 +152,9 @@ class RotorConfig {
       numeracionHoraria: json['numeracionHoraria'] as bool? ?? false,
       unidadVibracion: UnidadVibracion.values[json['unidadVibracion'] as int? ?? 0],
       tecnico: json['tecnico'] as String? ?? '',
+      pesoRotor: json['pesoRotor'] != null ? (json['pesoRotor'] as num).toDouble() : null,
+      velocidadRPM: json['velocidadRPM'] != null ? (json['velocidadRPM'] as num).toDouble() : null,
+      radioPeso: json['radioPeso'] != null ? (json['radioPeso'] as num).toDouble() : null,
     );
   }
 }

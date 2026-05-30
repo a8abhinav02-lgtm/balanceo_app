@@ -124,7 +124,16 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
                   Expanded(child: _buildCampo('Ángulo de colocación (°)', _mtFaseController)),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => _mostrarAsistenteMasa(context, provider, _mtModController),
+                  icon: const Icon(Icons.calculate, size: 18),
+                  label: const Text('Calcular Masa Sugerida'),
+                ),
+              ),
+              const SizedBox(height: 16),
               Text(
                 es2Planos ? 'Mediciones con peso en P1:' : 'Mediciones con peso de prueba:',
                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -143,7 +152,16 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
                   Expanded(child: _buildCampo('Ángulo de colocación (°)', _mt2FaseController)),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => _mostrarAsistenteMasa(context, provider, _mt2ModController),
+                  icon: const Icon(Icons.calculate, size: 18),
+                  label: const Text('Calcular Masa Sugerida'),
+                ),
+              ),
+              const SizedBox(height: 16),
               const Text('Mediciones con peso en P2:', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
             ],
@@ -276,5 +294,242 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
       ),
       validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
     );
+  }
+
+  void _mostrarAsistenteMasa(
+    BuildContext context,
+    BalanceoProvider provider,
+    TextEditingController targetController,
+  ) {
+    final config = provider.config;
+    final double? peso = config?.pesoRotor;
+    final double? rpm = config?.velocidadRPM;
+    final double? radio = config?.radioPeso;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return _AsistenteMasaDialog(
+          pesoInicial: peso,
+          rpmInicial: rpm,
+          radioInicial: radio,
+          onAceptar: (double valor) {
+            targetController.text = valor.toStringAsFixed(1);
+          },
+        );
+      },
+    );
+  }
+}
+
+class _AsistenteMasaDialog extends StatefulWidget {
+  final double? pesoInicial;
+  final double? rpmInicial;
+  final double? radioInicial;
+  final ValueChanged<double> onAceptar;
+
+  const _AsistenteMasaDialog({
+    this.pesoInicial,
+    this.rpmInicial,
+    this.radioInicial,
+    required this.onAceptar,
+  });
+
+  @override
+  State<_AsistenteMasaDialog> createState() => _AsistenteMasaDialogState();
+}
+
+class _AsistenteMasaDialogState extends State<_AsistenteMasaDialog> {
+  final _pesoController = TextEditingController();
+  final _rpmController = TextEditingController();
+  final _radioController = TextEditingController();
+
+  double? _resultado;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.pesoInicial != null) _pesoController.text = widget.pesoInicial!.toString();
+    if (widget.rpmInicial != null) _rpmController.text = widget.rpmInicial!.toString();
+    if (widget.radioInicial != null) _radioController.text = widget.radioInicial!.toString();
+    _calcularMasa();
+  }
+
+  @override
+  void dispose() {
+    _pesoController.dispose();
+    _rpmController.dispose();
+    _radioController.dispose();
+    super.dispose();
+  }
+
+  void _calcularMasa() {
+    final p = double.tryParse(_pesoController.text);
+    final n = double.tryParse(_rpmController.text);
+    final r = double.tryParse(_radioController.text);
+
+    if (p == null || n == null || r == null || p <= 0 || n <= 0 || r <= 0) {
+      setState(() {
+        _resultado = null;
+      });
+      return;
+    }
+
+    // Fórmula métrica de masa de prueba sugerida:
+    // m = (1.79 * 1e8 * peso) / (radio * rpm * rpm)
+    final masa = (1.79 * 1e8 * p) / (r * n * n);
+    setState(() {
+      _resultado = masa;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.scale, color: Colors.blueAccent),
+          SizedBox(width: 8),
+          Text('Asistente de Masa'),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'La masa de prueba óptima debe provocar un cambio notable de vibración sin inducir fuerzas peligrosas.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            const Text('Cálculo por Parámetros', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _pesoController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Peso del rotor (kg)',
+                isDense: true,
+              ),
+              onChanged: (_) => _calcularMasa(),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _rpmController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Velocidad (RPM)',
+                isDense: true,
+              ),
+              onChanged: (_) => _calcularMasa(),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _radioController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Radio de colocación (mm)',
+                isDense: true,
+              ),
+              onChanged: (_) => _calcularMasa(),
+            ),
+            const SizedBox(height: 16),
+
+            if (_resultado != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  children: [
+                    const Text('Masa de Prueba Sugerida:', style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_resultado!.toStringAsFixed(1)} g',
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            const Divider(),
+            const SizedBox(height: 8),
+            const Text('Recomendaciones de Campo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 4),
+            const Text('Si no dispone de datos, toque una opción:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const SizedBox(height: 8),
+            _buildEmpiricalOption('Rotor Pequeño (hasta 10 kg)', '3 - 10 g', 'Ej: Extractores chicos, poleas de motor.'),
+            _buildEmpiricalOption('Rotor Mediano (10 - 100 kg)', '10 - 40 g', 'Ej: Ventiladores industriales, bombas.'),
+            _buildEmpiricalOption('Rotor Grande (100 - 500 kg)', '40 - 150 g', 'Ej: Extractores grandes, turbomáquinas.'),
+            _buildEmpiricalOption('Rotor Muy Grande (> 500 kg)', '> 150 g', 'Ej: Torres de enfriamiento gigantes.'),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        if (_resultado != null)
+          ElevatedButton(
+            onPressed: () {
+              widget.onAceptar(_resultado!);
+              Navigator.pop(context);
+            },
+            child: const Text('Usar Masa Sugerida'),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildEmpiricalOption(String label, String suggestion, String desc) {
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 8),
+      color: Colors.grey.shade50,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6), side: BorderSide(color: Colors.grey.shade200)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            Text(suggestion, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+          ],
+        ),
+        subtitle: Text(desc, style: const TextStyle(fontSize: 9, color: Colors.grey)),
+        onTap: () {
+          final num = _parseSuggestion(suggestion);
+          if (num != null) {
+            widget.onAceptar(num);
+            Navigator.pop(context);
+          }
+        },
+      ),
+    );
+  }
+
+  double? _parseSuggestion(String suggestion) {
+    final cleanStr = suggestion.replaceAll('g', '').trim();
+    if (cleanStr.contains('-')) {
+      final parts = cleanStr.split('-');
+      final a = double.tryParse(parts[0].trim());
+      final b = double.tryParse(parts[1].trim());
+      if (a != null && b != null) {
+        return (a + b) / 2;
+      }
+    }
+    if (cleanStr.contains('>')) {
+      final val = cleanStr.replaceAll('>', '').trim();
+      return double.tryParse(val);
+    }
+    return double.tryParse(cleanStr);
   }
 }
