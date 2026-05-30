@@ -385,6 +385,12 @@ class _AsistenteMasaDialogState extends State<_AsistenteMasaDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final p = double.tryParse(_pesoController.text) ?? 0.0;
+    final bool esPequeno = p > 0 && p <= 10;
+    final bool esMediano = p > 10 && p <= 100;
+    final bool esGrande = p > 100 && p <= 500;
+    final bool esMuyGrande = p > 500;
+
     return AlertDialog(
       title: const Row(
         children: [
@@ -457,6 +463,29 @@ class _AsistenteMasaDialogState extends State<_AsistenteMasaDialog> {
                 ),
               ),
               const SizedBox(height: 16),
+            ] else ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blueAccent),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Complete el peso, velocidad y radio para obtener un cálculo exacto. Si no dispone de datos, use una de las sugerencias rápidas abajo.',
+                        style: TextStyle(fontSize: 11, color: Colors.blue),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
 
             const Divider(),
@@ -465,10 +494,10 @@ class _AsistenteMasaDialogState extends State<_AsistenteMasaDialog> {
             const SizedBox(height: 4),
             const Text('Si no dispone de datos, toque una opción:', style: TextStyle(fontSize: 11, color: Colors.grey)),
             const SizedBox(height: 8),
-            _buildEmpiricalOption('Rotor Pequeño (hasta 10 kg)', '3 - 10 g', 'Ej: Extractores chicos, poleas de motor.'),
-            _buildEmpiricalOption('Rotor Mediano (10 - 100 kg)', '10 - 40 g', 'Ej: Ventiladores industriales, bombas.'),
-            _buildEmpiricalOption('Rotor Grande (100 - 500 kg)', '40 - 150 g', 'Ej: Extractores grandes, turbomáquinas.'),
-            _buildEmpiricalOption('Rotor Muy Grande (> 500 kg)', '> 150 g', 'Ej: Torres de enfriamiento gigantes.'),
+            _buildEmpiricalOption('Rotor Pequeño (hasta 10 kg)', '3 - 10 g', 'Ej: Extractores chicos, poleas de motor.', highlighted: esPequeno),
+            _buildEmpiricalOption('Rotor Mediano (10 - 100 kg)', '10 - 40 g', 'Ej: Ventiladores industriales, bombas.', highlighted: esMediano),
+            _buildEmpiricalOption('Rotor Grande (100 - 500 kg)', '40 - 150 g', 'Ej: Extractores grandes, turbomáquinas.', highlighted: esGrande),
+            _buildEmpiricalOption('Rotor Muy Grande (> 500 kg)', '> 150 g', 'Ej: Torres de enfriamiento gigantes.', highlighted: esMuyGrande),
           ],
         ),
       ),
@@ -489,18 +518,31 @@ class _AsistenteMasaDialogState extends State<_AsistenteMasaDialog> {
     );
   }
 
-  Widget _buildEmpiricalOption(String label, String suggestion, String desc) {
+  Widget _buildEmpiricalOption(String label, String suggestion, String desc, {bool highlighted = false}) {
     return Card(
-      elevation: 0,
+      elevation: highlighted ? 1 : 0,
       margin: const EdgeInsets.only(bottom: 8),
-      color: Colors.grey.shade50,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6), side: BorderSide(color: Colors.grey.shade200)),
+      color: highlighted ? Colors.blue.shade50 : Colors.grey.shade50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6),
+        side: BorderSide(
+          color: highlighted ? Colors.blueAccent.shade200 : Colors.grey.shade200,
+          width: highlighted ? 1.5 : 1.0,
+        ),
+      ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            Text(
+              label + (highlighted ? ' (Sugerido)' : ''),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: highlighted ? Colors.blue.shade900 : Colors.black87,
+              ),
+            ),
             Text(suggestion, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueAccent)),
           ],
         ),
