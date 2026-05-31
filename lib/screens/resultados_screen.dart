@@ -498,6 +498,7 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
                       ),
                     ),
                   ),
+
                   if (provider.vVerificacion != null && config != null) ...[
                     const SizedBox(height: 16),
                     Card(
@@ -809,12 +810,26 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
     Complejo? m2,
     bool es2Planos,
   ) {
+    final config = provider.config;
+    final esDiscreto = config?.tipo == TipoRotor.discreto && (config?.numAlabes ?? 0) > 1;
+
+    final division1 = esDiscreto && m1 != null ? provider.calcularDivisionPesos(m1) : null;
+    final division2 = esDiscreto && es2Planos && m2 != null ? provider.calcularDivisionPesos(m2) : null;
+
     final amp1Controller = TextEditingController(
       text: (provider.masaRealInstalada1 ?? m1)?.modulo.toStringAsFixed(2) ?? '',
     );
     final ang1Controller = TextEditingController(
       text: provider.ajustarAngulo((provider.masaRealInstalada1 ?? m1)?.anguloGrados ?? 0).toStringAsFixed(1),
     );
+
+    final ampA1Controller = TextEditingController(
+      text: division1 != null ? division1['masaA'].toStringAsFixed(2) : '',
+    );
+    final ampB1Controller = TextEditingController(
+      text: division1 != null ? division1['masaB'].toStringAsFixed(2) : '',
+    );
+
     final amp2Controller = TextEditingController(
       text: (provider.masaRealInstalada2 ?? m2)?.modulo.toStringAsFixed(2) ?? '',
     );
@@ -822,80 +837,174 @@ class _ResultadosScreenState extends State<ResultadosScreen> {
       text: provider.ajustarAngulo((provider.masaRealInstalada2 ?? m2)?.anguloGrados ?? 0).toStringAsFixed(1),
     );
 
+    final ampA2Controller = TextEditingController(
+      text: division2 != null ? division2['masaA'].toStringAsFixed(2) : '',
+    );
+    final ampB2Controller = TextEditingController(
+      text: division2 != null ? division2['masaB'].toStringAsFixed(2) : '',
+    );
+
+    bool registrarPorAlabes = false;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Ajustar Peso Real'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Ingrese los pesos reales que se instalaron en el rotor.',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Ajustar Peso Real'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Ingrese los pesos reales que se instalaron en el rotor.',
+                    style: TextStyle(fontSize: 13, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 12),
+                  if (esDiscreto) ...[
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Registrar por división de álabes', style: TextStyle(fontSize: 14)),
+                      value: registrarPorAlabes,
+                      onChanged: (val) {
+                        setState(() {
+                          registrarPorAlabes = val ?? false;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (m1 != null) ...[
+                    Text(es2Planos ? 'Plano 1' : 'Masa Correctora', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    if (registrarPorAlabes && division1 != null) ...[
+                      Text('Montaje dividido en álabes adyacentes ${division1['alabeA']} y ${division1['alabeB']}:',
+                          style: const TextStyle(fontSize: 12, color: Colors.blueGrey)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: ampA1Controller,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: 'Masa Álabe N° ${division1['alabeA']} (g)',
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: ampB1Controller,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: 'Masa Álabe N° ${division1['alabeB']} (g)',
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ] else ...[
+                      TextField(
+                        controller: amp1Controller,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Masa (g)', border: OutlineInputBorder()),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: ang1Controller,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Ángulo (°)', border: OutlineInputBorder()),
+                      ),
+                    ],
+                  ],
+                  if (es2Planos && m2 != null) ...[
+                    const SizedBox(height: 16),
+                    Text('Plano 2', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    if (registrarPorAlabes && division2 != null) ...[
+                      Text('Montaje dividido en álabes adyacentes ${division2['alabeA']} y ${division2['alabeB']}:',
+                          style: const TextStyle(fontSize: 12, color: Colors.blueGrey)),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: ampA2Controller,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: 'Masa Álabe N° ${division2['alabeA']} (g)',
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: ampB2Controller,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: 'Masa Álabe N° ${division2['alabeB']} (g)',
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ] else ...[
+                      TextField(
+                        controller: amp2Controller,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Masa (g)', border: OutlineInputBorder()),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: ang2Controller,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(labelText: 'Ángulo (°)', border: OutlineInputBorder()),
+                      ),
+                    ],
+                  ],
+                ],
               ),
-              const SizedBox(height: 16),
-              if (m1 != null) ...[
-                Text(es2Planos ? 'Plano 1' : 'Masa Correctora', style: const TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: amp1Controller,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Masa (g)', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: ang1Controller,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Ángulo (°)', border: OutlineInputBorder()),
-                ),
-              ],
-              if (es2Planos && m2 != null) ...[
-                const SizedBox(height: 16),
-                const Text('Plano 2', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: amp2Controller,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Masa (g)', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: ang2Controller,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Ángulo (°)', border: OutlineInputBorder()),
-                ),
-              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  if (m1 != null) {
+                    if (registrarPorAlabes && division1 != null) {
+                      final valA = double.tryParse(ampA1Controller.text) ?? 0.0;
+                      final valB = double.tryParse(ampB1Controller.text) ?? 0.0;
+                      provider.masaRealInstalada1 = provider.calcularMasaEquivalenteDivision(
+                        masaA: valA,
+                        alabeA: division1['alabeA'],
+                        masaB: valB,
+                        alabeB: division1['alabeB'],
+                      );
+                    } else {
+                      final amp = double.tryParse(amp1Controller.text) ?? 0.0;
+                      final ang = double.tryParse(ang1Controller.text) ?? 0.0;
+                      final anguloFisico = provider.config?.sentido == SentidoGiro.horario ? -ang : ang;
+                      provider.masaRealInstalada1 = Complejo.desdePolar(amp, anguloFisico);
+                    }
+                  }
+                  if (es2Planos && m2 != null) {
+                    if (registrarPorAlabes && division2 != null) {
+                      final valA = double.tryParse(ampA2Controller.text) ?? 0.0;
+                      final valB = double.tryParse(ampB2Controller.text) ?? 0.0;
+                      provider.masaRealInstalada2 = provider.calcularMasaEquivalenteDivision(
+                        masaA: valA,
+                        alabeA: division2['alabeA'],
+                        masaB: valB,
+                        alabeB: division2['alabeB'],
+                      );
+                    } else {
+                      final amp = double.tryParse(amp2Controller.text) ?? 0.0;
+                      final ang = double.tryParse(ang2Controller.text) ?? 0.0;
+                      final anguloFisico = provider.config?.sentido == SentidoGiro.horario ? -ang : ang;
+                      provider.masaRealInstalada2 = Complejo.desdePolar(amp, anguloFisico);
+                    }
+                  }
+                  provider.saveToDisk();
+                  Navigator.pop(context);
+                  this.setState(() {}); // Rebuild parent screen to show updated Masa Real
+                },
+                child: const Text('Aceptar'),
+              ),
             ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (m1 != null) {
-                final amp = double.tryParse(amp1Controller.text) ?? 0.0;
-                final ang = double.tryParse(ang1Controller.text) ?? 0.0;
-                final anguloFisico = provider.config?.sentido == SentidoGiro.horario ? -ang : ang;
-                provider.masaRealInstalada1 = Complejo.desdePolar(amp, anguloFisico);
-              }
-              if (es2Planos && m2 != null) {
-                final amp = double.tryParse(amp2Controller.text) ?? 0.0;
-                final ang = double.tryParse(ang2Controller.text) ?? 0.0;
-                final anguloFisico = provider.config?.sentido == SentidoGiro.horario ? -ang : ang;
-                provider.masaRealInstalada2 = Complejo.desdePolar(amp, anguloFisico);
-              }
-              provider.saveToDisk();
-              Navigator.pop(context);
-              setState(() {});
-            },
-            child: const Text('Aceptar'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
