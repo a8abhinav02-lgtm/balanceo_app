@@ -116,6 +116,8 @@ class PdfExport {
       m1 = provider.calcularCorreccion1Plano();
     }
 
+    final isoResultados = provider.calcularISO1940();
+
     // ── Pre-renderizar gráficas polares ──────────────────────────────────────
 
     // 1. Estado Inicial / Residual
@@ -605,12 +607,98 @@ class PdfExport {
             ),
           ),
 
+          if (config?.gradoISO != null && isoResultados != null)
+            pw.Inseparable(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  _sectionTitle('9. Certificación de Calidad ISO 1940-1', font),
+                  _fila('Grado de calidad requerido (G)', 'G${isoResultados['g']}', font, fontBold: fontBold),
+                  _fila('Peso del rotor (W)', '${config?.pesoRotor?.toStringAsFixed(2)} kg', font),
+                  _fila('Velocidad de operación (N)', '${config?.velocidadRPM?.toStringAsFixed(0)} RPM', font),
+                  _fila('Radio de corrección (R)', '${config?.radioPeso?.toStringAsFixed(1)} mm', font),
+                  
+                  pw.SizedBox(height: 8),
+                  pw.Text('Límites admisibles calculados:',
+                      style: pw.TextStyle(font: fontBold, fontSize: 10, color: PdfColors.blue900)),
+                  _fila('  Desbalance esp. perm. (eper)', '${(isoResultados['ePer'] as double).toStringAsFixed(2)} g-mm/kg', font),
+                  _fila('  Desbalance adm. por plano (Uper)', '${(isoResultados['uPerPlane'] as double).toStringAsFixed(1)} g-mm', font),
+                  _fila('  Masa límite admisible en R', '${(isoResultados['mPerPlane'] as double).toStringAsFixed(2)} g', font),
+                  
+                  pw.SizedBox(height: 8),
+                  pw.Text('Desbalances residuales reales:',
+                      style: pw.TextStyle(font: fontBold, fontSize: 10, color: PdfColors.blue900)),
+                  
+                  // Plano 1
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.only(left: 10),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(es2Planos ? 'Plano 1:' : 'Rotor:', style: pw.TextStyle(font: fontBold, fontSize: 9)),
+                        _fila('    Sensibilidad S1', '${(isoResultados['s1'] as double).toStringAsFixed(2)} g-mm/$unidad', font),
+                        _fila('    Desbalance residual real U1', '${(isoResultados['uResidual1'] as double).toStringAsFixed(1)} g-mm', font, fontBold: fontBold),
+                        _fila('    Masa residual equivalente', '${(isoResultados['mResidual1'] as double).toStringAsFixed(2)} g', font),
+                        _fila('    Cumplimiento Plano 1', (isoResultados['cumple1'] as bool) ? 'CUMPLE' : 'FUERA DE NORMA', font, fontBold: fontBold),
+                      ],
+                    ),
+                  ),
+
+                  // Plano 2
+                  if (es2Planos && isoResultados['s2'] != null) ...[
+                    pw.SizedBox(height: 4),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.only(left: 10),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Plano 2:', style: pw.TextStyle(font: fontBold, fontSize: 9)),
+                          _fila('    Sensibilidad S2', '${(isoResultados['s2'] as double).toStringAsFixed(2)} g-mm/$unidad', font),
+                          _fila('    Desbalance residual real U2', '${(isoResultados['uResidual2'] as double).toStringAsFixed(1)} g-mm', font, fontBold: fontBold),
+                          _fila('    Masa residual equivalente', '${(isoResultados['mResidual2'] as double).toStringAsFixed(2)} g', font),
+                          _fila('    Cumplimiento Plano 2', (isoResultados['cumple2'] as bool) ? 'CUMPLE' : 'FUERA DE NORMA', font, fontBold: fontBold),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  pw.SizedBox(height: 12),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.all(8),
+                    decoration: pw.BoxDecoration(
+                      color: (isoResultados['cumpleTodo'] as bool) ? PdfColors.green100 : PdfColors.red100,
+                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+                      border: pw.Border.all(
+                        color: (isoResultados['cumpleTodo'] as bool) ? PdfColors.green700 : PdfColors.red700,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.center,
+                      children: [
+                        pw.Text(
+                          (isoResultados['cumpleTodo'] as bool)
+                              ? 'VERDICTO: EL ROTOR CUMPLE SATISFACTORIAMENTE CON LA CLASE DE CALIDAD ISO G${isoResultados['g']}'
+                              : 'VERDICTO: EL ROTOR ESTÁ FUERA DE LA TOLERANCIA ESTABLECIDA PARA LA CLASE ISO G${isoResultados['g']}',
+                          style: pw.TextStyle(
+                            font: fontBold,
+                            fontSize: 10,
+                            color: (isoResultados['cumpleTodo'] as bool) ? PdfColors.green900 : PdfColors.red900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // ── 9. Recomendaciones ───────────────────────────────────────────
           pw.Inseparable(
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                _sectionTitle('9. Recomendaciones', font),
+                _sectionTitle(config?.gradoISO != null && isoResultados != null ? '10. Recomendaciones' : '9. Recomendaciones', font),
                 ...[
                   '- Verificar la correcta instalación de las masas correctoras antes de arrancar.',
                   '- Confirmar la calibración del sistema de medición de fase (keyphasor).',

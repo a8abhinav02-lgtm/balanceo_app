@@ -63,11 +63,47 @@ Si tras instalar la masa correctora la vibración residual no es satisfactoria:
 
 ---
 
+## Balanceo de Rotores en Voladizo (Overhung) - Método Estático-Acople
+
+Para rotores en voladizo (geometrías con alto acoplamiento dinámico donde el ventilador o impulsor está fuera del vano de los apoyos), el método convencional de 2 planos por matriz de influencia puede ser inestable. En su lugar, la app cuenta con un asistente especializado basado en el método modal de **Descomposición Estático-Acople**.
+
+### Flujo de Operación Paso a Paso:
+
+1. **Configuración Inicial:**
+   * En la pantalla de **Configuración**, seleccione **2 planos** y active el interruptor **"Rotor en voladizo (Overhung)"**.
+2. **Medición Inicial (V0):**
+   * Realice una corrida del rotor sin pesos añadidos y registre los niveles de vibración diagnósticos iniciales.
+3. **Fase 1: Corrida de Prueba Estática:**
+   * **Instalación:** Coloque dos masas de prueba **idénticas** (ej: 10 gramos) en la **misma posición angular** (ej: a 0°) tanto en el Plano 1 como en el Plano 2.
+   * **Registro:** Ingrese el peso y ángulo de una de las masas, y registre las vibraciones resultantes en ambos sensores.
+   * **Propósito:** Esta prueba aísla el comportamiento estático (traslación) del rotor.
+4. **Fase 2: Corrida de Prueba de Acople:**
+   * **Instalación:** Retire los pesos anteriores. Coloque dos masas de prueba **idénticas** pero **desfasadas 180°** (ej: 10 gramos a 0° en Plano 1 y 10 gramos a 180° en Plano 2).
+   * **Registro:** Ingrese el peso y ángulo de la masa del Plano 1, y registre las vibraciones resultantes en ambos sensores.
+   * **Propósito:** Esta prueba aísla el comportamiento de acople (momento/rotación angular) del rotor.
+5. **Cálculo y Corrección Final:**
+   * Presione **Calcular**. La aplicación calculará los coeficientes de influencia modales Hs y Hc, y generará las masas de corrección definitivas para el Plano 1 y Plano 2 resolviendo vectorialmente el desbalance estático y el de acople por separado.
+
+---
+
 ## Concepto de Coeficientes de Influencia (Lag y Lead)
 
 El coeficiente de influencia (H) es una constante física del sistema que mide cómo responde el rotor a la adición de una masa de prueba. En el reporte final, este coeficiente se acompaña de una clasificación de desfase:
 
-- **(Lag - Retraso de Fase):** Ocurre cuando el ángulo de desfase del coeficiente está entre 0° y 180°. Es el comportamiento estándar en la mayoría de los rotores industriales; la respuesta física del rotor tiene un retraso o inercia respecto a la ubicación del peso.
-- **(Lead - Adelanto de Fase):** Se indica cuando el ángulo está entre 180° y 360°. Esto representa un adelanto de fase de la señal de respuesta, típico bajo condiciones dinámicas de resonancia o acoplamientos específicos del sensor.
+- (Lag - Retraso de Fase): Ocurre cuando el ángulo de desfase del coeficiente está entre 0° y 180°. Es el comportamiento estándar en la mayoría de los rotores industriales; la respuesta física del rotor tiene un retraso o inercia respecto a la ubicación del peso.
+- (Lead - Adelanto de Fase): Se indica cuando el ángulo está entre 180° y 360°. Esto representa un adelanto de fase de la señal de respuesta, típico bajo condiciones dinámicas de resonancia o acoplamientos específicos del sensor.
 
+---
 
+## Control de Calidad de Balanceo (Norma ISO 1940-1)
+
+La aplicación incluye un módulo opcional para certificar técnicamente el estado del balanceo bajo la norma internacional **ISO 1940-1**:
+
+1. **Activación:** Puede habilitar el switch "Control de Calidad ISO 1940" directamente en la pantalla de resultados finales.
+2. **Configuración de Parámetros:** Ingrese el grado de calidad (G) correspondiente al tipo de maquinaria (e.g. G2.5 para ventiladores industriales), el peso del rotor (kg), la velocidad nominal (RPM) y el radio de corrección (mm). Estos parámetros pueden modificarse dinámicamente en caliente sin perder los cálculos actuales del balanceo.
+3. **Cálculos y Veredicto:**
+   * **Desbalance Admisible ($U_{per, plane}$):** Representa el límite de tolerancia superior por plano (en g-mm) según la norma:
+     $$U_{per, plane} = \frac{9549.3 \times G \times W}{N \times P}$$
+   * **Desbalance Residual Real ($U_{residual, j}$):** Se calcula a partir de la sensibilidad física ($S_j$) obtenida de la corrida de peso de prueba y el nivel final de vibración medida:
+     $$U_{residual, j} = S_j \times V_{final, j}$$
+   * **Conformidad:** El sistema otorga un distintivo verde **"CUMPLE CON ISO"** si el desbalance residual real de todos los planos es inferior o igual a la tolerancia admisible. De lo contrario, se muestra en rojo **"NO CUMPLE"**

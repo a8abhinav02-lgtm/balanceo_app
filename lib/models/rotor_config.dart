@@ -30,6 +30,8 @@ class RotorConfig {
   double? pesoRotor;
   double? velocidadRPM;
   double? radioPeso;
+  bool esVoladizo;
+  String? gradoISO;
 
   // ── Getters de compatibilidad ──────────────────────────────────────────
   // Permiten que el código existente (polar_plot, pdf_export, etc.) siga
@@ -58,6 +60,8 @@ class RotorConfig {
     this.pesoRotor,
     this.velocidadRPM,
     this.radioPeso,
+    this.esVoladizo = false,
+    this.gradoISO,
   }) : canales = canales ?? CanalMedicion.defaultCanales();
 
   RotorConfig copyWith({
@@ -76,6 +80,8 @@ class RotorConfig {
     double? pesoRotor,
     double? velocidadRPM,
     double? radioPeso,
+    bool? esVoladizo,
+    String? gradoISO,
   }) {
     return RotorConfig(
       nombreActivo: nombreActivo ?? this.nombreActivo,
@@ -93,6 +99,8 @@ class RotorConfig {
       pesoRotor: pesoRotor ?? this.pesoRotor,
       velocidadRPM: velocidadRPM ?? this.velocidadRPM,
       radioPeso: radioPeso ?? this.radioPeso,
+      esVoladizo: esVoladizo ?? this.esVoladizo,
+      gradoISO: gradoISO ?? this.gradoISO,
     );
   }
 
@@ -115,6 +123,8 @@ class RotorConfig {
     'pesoRotor': pesoRotor,
     'velocidadRPM': velocidadRPM,
     'radioPeso': radioPeso,
+    'esVoladizo': esVoladizo,
+    'gradoISO': gradoISO,
   };
 
   /// Deserialización con migración retrocompatible.
@@ -155,6 +165,8 @@ class RotorConfig {
       pesoRotor: json['pesoRotor'] != null ? (json['pesoRotor'] as num).toDouble() : null,
       velocidadRPM: json['velocidadRPM'] != null ? (json['velocidadRPM'] as num).toDouble() : null,
       radioPeso: json['radioPeso'] != null ? (json['radioPeso'] as num).toDouble() : null,
+      esVoladizo: json['esVoladizo'] as bool? ?? false,
+      gradoISO: json['gradoISO'] as String?,
     );
   }
 }

@@ -34,6 +34,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   late double _anguloAlabe1;
   late bool _numeracionHoraria;
   late UnidadVibracion _unidadVibracion;
+  late bool _esVoladizo;
 
   @override
   void initState() {
@@ -55,6 +56,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     _anguloAlabe1 = provider.config?.anguloReferenciaAlabe1 ?? 0;
     _numeracionHoraria = provider.config?.numeracionHoraria ?? false;
     _unidadVibracion = provider.config?.unidadVibracion ?? UnidadVibracion.micras;
+    _esVoladizo = provider.config?.esVoladizo ?? false;
   }
 
   @override
@@ -83,6 +85,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
           _anguloAlabe1 = provider.config!.anguloReferenciaAlabe1;
           _numeracionHoraria = provider.config!.numeracionHoraria;
           _unidadVibracion = provider.config!.unidadVibracion;
+          _esVoladizo = provider.config!.esVoladizo;
           _pesoRotorController.text = provider.config!.pesoRotor?.toString() ?? '';
           _velocidadRPMController.text = provider.config!.velocidadRPM?.toString() ?? '';
           _radioPesoController.text = provider.config!.radioPeso?.toString() ?? '';
@@ -110,6 +113,9 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   void _onNumPlanosChanged(int numPlanos) {
     setState(() {
       _numPlanos = numPlanos;
+      if (numPlanos == 1) {
+        _esVoladizo = false;
+      }
       if (numPlanos == 2 && _canales.length < 2) {
         while (_canales.length < 2) {
           _agregarCanal();
@@ -145,6 +151,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
         _sentido = SentidoGiro.antihorario;
         _tipo = TipoRotor.continuo;
         _numAlabes = 0;
+        _esVoladizo = false;
       });
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Activo "$nombre" eliminado')));
@@ -390,6 +397,19 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                       onSelectionChanged: (set) => _onNumPlanosChanged(set.first),
                     ),
                     const SizedBox(height: 16),
+                    if (_numPlanos == 2) ...[
+                      SwitchListTile(
+                        title: const Text('Rotor en voladizo (Overhung)'),
+                        subtitle: const Text('Usa método modal secuencial Estático-Acople para geometrías con alto acoplamiento dinámico.'),
+                        value: _esVoladizo,
+                        onChanged: (val) {
+                          setState(() {
+                            _esVoladizo = val;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
                     Row(
                       children: [
@@ -489,6 +509,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                       anguloReferenciaAlabe1: _anguloAlabe1,
                       numeracionHoraria: _numeracionHoraria,
                       unidadVibracion: _unidadVibracion,
+                      esVoladizo: _esVoladizo,
                     ),
                   ),
                 ),
@@ -524,6 +545,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                   pesoRotor: double.tryParse(_pesoRotorController.text),
                   velocidadRPM: double.tryParse(_velocidadRPMController.text),
                   radioPeso: double.tryParse(_radioPesoController.text),
+                  esVoladizo: _esVoladizo,
                 );
                 provider.setConfig(config).then((_) {
                   if (!context.mounted) return;

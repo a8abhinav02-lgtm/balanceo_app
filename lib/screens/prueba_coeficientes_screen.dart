@@ -161,9 +161,15 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
       mostrarAlertaGlobal = true;
     }
 
+    final esVoladizo = es2Planos && (provider.config?.esVoladizo ?? false);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(es2Planos ? 'Prueba Coeficientes - P$_paso' : 'Prueba Coeficientes'),
+        title: Text(es2Planos 
+            ? (esVoladizo 
+                ? (_paso == 1 ? 'Prueba Estática (Paso 1/2)' : 'Prueba de Acople (Paso 2/2)') 
+                : 'Prueba Coeficientes - P$_paso') 
+            : 'Prueba Coeficientes'),
         actions: [
           IconButton(
             icon: const Icon(Icons.help_outline),
@@ -179,17 +185,23 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            if (esVoladizo) ...[
+              _buildVoladizoInstructionBanner(_paso),
+              const SizedBox(height: 16),
+            ],
             if (_paso == 1) ...[
               Text(
-                es2Planos ? 'PESO DE PRUEBA EN PLANO 1' : 'PESO DE PRUEBA',
+                es2Planos 
+                    ? (esVoladizo ? 'MASA DE PRUEBA ESTÁTICA (EN AMBOS PLANOS EN FASE)' : 'PESO DE PRUEBA EN PLANO 1') 
+                    : 'PESO DE PRUEBA',
                 style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: _buildCampo('Masa de prueba (g)', _mtModController)),
+                  Expanded(child: _buildCampo(esVoladizo ? 'Masa de prueba estática (g)' : 'Masa de prueba (g)', _mtModController)),
                   const SizedBox(width: 12),
-                  Expanded(child: _buildCampo('Ángulo de colocación (°)', _mtFaseController)),
+                  Expanded(child: _buildCampo(esVoladizo ? 'Ángulo en Plano 1 & 2 (°)' : 'Ángulo de colocación (°)', _mtFaseController)),
                 ],
               ),
               const SizedBox(height: 8),
@@ -203,21 +215,23 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                es2Planos ? 'Mediciones con peso en P1:' : 'Mediciones con peso de prueba:',
+                es2Planos 
+                    ? (esVoladizo ? 'Mediciones resultantes (Fase Estática):' : 'Mediciones con peso en P1:') 
+                    : 'Mediciones con peso de prueba:',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
             ] else ...[
-              const Text(
-                'PESO DE PRUEBA EN PLANO 2',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
+              Text(
+                esVoladizo ? 'MASA DE PRUEBA DE ACOPLE (PLANO 1 @ ÁNGULO; PLANO 2 @ ÁNGULO + 180°)' : 'PESO DE PRUEBA EN PLANO 2',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: _buildCampo('Masa de prueba (g)', _mt2ModController)),
+                  Expanded(child: _buildCampo(esVoladizo ? 'Masa de prueba de acople (g)' : 'Masa de prueba (g)', _mt2ModController)),
                   const SizedBox(width: 12),
-                  Expanded(child: _buildCampo('Ángulo de colocación (°)', _mt2FaseController)),
+                  Expanded(child: _buildCampo(esVoladizo ? 'Ángulo en Plano 1 (°)' : 'Ángulo de colocación (°)', _mt2FaseController)),
                 ],
               ),
               const SizedBox(height: 8),
@@ -230,7 +244,10 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Mediciones con peso en P2:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                esVoladizo ? 'Mediciones resultantes (Fase Acople):' : 'Mediciones con peso en P2:',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 12),
             ],
 
@@ -422,8 +439,52 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
     );
   }
 
+  Widget _buildVoladizoInstructionBanner(int paso) {
+    final isPaso1 = paso == 1;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.blue.shade800, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                isPaso1
+                    ? 'Fase 1/2: Configuración Estática'
+                    : 'Fase 2/2: Configuración de Acople',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.blue.shade900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isPaso1
+                ? 'Para aislar el desbalance estático:\n1. Coloque dos masas de prueba IDÉNTICAS en el mismo ángulo en ambos planos (ej: 10g en 0° tanto en Plano 1 como en Plano 2).\n2. Ingrese el peso y ángulo de una de ellas abajo.\n3. Registre las vibraciones resultantes.'
+                : 'Para aislar el desbalance de acople (dinámico):\n1. Retire las masas anteriores.\n2. Coloque dos masas de prueba IDÉNTICAS desfasadas 180° (ej: 10g en 0° en Plano 1 y 10g en 180° en Plano 2).\n3. Ingrese el peso y ángulo de la masa del Plano 1 abajo.\n4. Registre las vibraciones resultantes.',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.blue.shade900,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCampo(String label, TextEditingController controller) {
-    final isAngulo = label.toLowerCase().contains('fase') || label.toLowerCase().contains('ángulo');
+    final isAngulo = label.toLowerCase().contains('fase') || label.toLowerCase().contains('ángulo') || label.toLowerCase().contains('plano');
     return TextFormField(
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),

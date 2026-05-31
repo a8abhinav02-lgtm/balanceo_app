@@ -316,14 +316,37 @@ class BalanceoProvider extends ChangeNotifier {
     mt2Temp = mt2;
     v2Temp = v2;
 
-    // Calcular matriz de coeficientes de influencia (M x 2)
-    List<List<Complejo>> coefs = [];
-    for (int i = 0; i < v0!.length; i++) {
-      Complejo c1 = (v1[i] - v0![i]) / mt1;
-      Complejo c2 = (v2[i] - v0![i]) / mt2;
-      coefs.add([c1, c2]);
+    if (config!.esVoladizo) {
+      final v10 = v0![0];
+      final v20 = v0!.length > 1 ? v0![1] : Complejo(0, 0);
+      final vs0 = (v10 + v20) / Complejo(2, 0);
+      final vc0 = (v10 - v20) / Complejo(2, 0);
+
+      final v11 = v1[0];
+      final v21 = v1.length > 1 ? v1[1] : Complejo(0, 0);
+      final vs1 = (v11 + v21) / Complejo(2, 0);
+
+      final Hs = (vs1 - vs0) / mt1;
+
+      final v12 = v2[0];
+      final v22 = v2.length > 1 ? v2[1] : Complejo(0, 0);
+      final vc2 = (v12 - v22) / Complejo(2, 0);
+
+      final Hc = (vc2 - vc0) / mt2;
+
+      matrizCoeficientes = [
+        [Hs, Hc],
+        [Hs, Hc]
+      ];
+    } else {
+      List<List<Complejo>> coefs = [];
+      for (int i = 0; i < v0!.length; i++) {
+        Complejo c1 = (v1[i] - v0![i]) / mt1;
+        Complejo c2 = (v2[i] - v0![i]) / mt2;
+        coefs.add([c1, c2]);
+      }
+      matrizCoeficientes = coefs;
     }
-    matrizCoeficientes = coefs;
 
     pasoActual = 3;
     saveToDisk();
@@ -355,6 +378,25 @@ class BalanceoProvider extends ChangeNotifier {
   /// Calcula las masas de corrección en 2 planos usando Mínimos Cuadrados Ponderados (2x2).
   List<Complejo?> calcularCorreccion2Planos() {
     if (v0 == null || matrizCoeficientes == null || config == null) return [null, null];
+
+    if (config!.esVoladizo) {
+      final Hs = matrizCoeficientes![0][0];
+      final Hc = matrizCoeficientes![0][1];
+
+      final v10 = v0![0];
+      final v20 = v0!.length > 1 ? v0![1] : Complejo(0, 0);
+
+      final vs0 = (v10 + v20) / Complejo(2, 0);
+      final vc0 = (v10 - v20) / Complejo(2, 0);
+
+      final Cs = -vs0 / Hs;
+      final Cc = -vc0 / Hc;
+
+      final m1 = Cs + Cc;
+      final m2 = Cs - Cc;
+
+      return [m1, m2];
+    }
 
     double a11 = 0;
     Complejo a12 = Complejo(0, 0);
@@ -426,6 +468,7 @@ class BalanceoProvider extends ChangeNotifier {
 
   void refinarCoeficientes() {
     if (v0Original == null || config == null) return;
+    if (config!.esVoladizo) return; // Skip refinement for overhung modal balance
     final numCanales = v0Original!.length;
 
     if (numPlanos == 1) {
@@ -792,5 +835,122 @@ class BalanceoProvider extends ChangeNotifier {
     final vA = Complejo.desdePolar(masaA, phaseA);
     final vB = Complejo.desdePolar(masaB, phaseB);
     return vA + vB;
+  }
+
+  void registrarMasaConsolidada({
+    required int plano,
+    required double modulo,
+    required double anguloAjustado,
+  }) {
+    if (config == null) return;
+    
+    final phase = ajustarAngulo(anguloAjustado);
+    final mConsolidadaReal = Complejo.desdePolar(modulo, phase);
+    
+    if (plano == 1) {
+      final mAcumulada = calcularMasaRealAcumuladaPlano1();
+      masaRealInstalada1 = mConsolidadaReal - mAcumulada;
+    } else if (plano == 2) {
+      final mAcumulada = calcularMasaRealAcumuladaPlano2();
+      masaRealInstalada2 = mConsolidadaReal - mAcumulada;
+    }
+    
+    notifyListeners();
+  }
+
+  void setGradoISO(String? grado) {
+    if (config != null) {
+      config!.gradoISO = grado;
+      saveToDisk();
+      notifyListeners();
+    }
+  }
+
+  void updateISOParams({double? peso, double? rpm, double? radio}) {
+    if (config != null) {
+      config = config!.copyWith(
+        pesoRotor: peso ?? config!.pesoRotor,
+        velocidadRPM: rpm ?? config!.velocidadRPM,
+        radioPeso: radio ?? config!.radioPeso,
+      );
+      saveToDisk();
+      notifyListeners();
+    }
+  }
+
+  Map<String, dynamic>? calcularISO1940() {
+    if (config == null) return null;
+    final w = config!.pesoRotor;
+    final n = config!.velocidadRPM;
+    final r = config!.radioPeso;
+    final gradoStr = config!.gradoISO;
+
+    if (w == null || n == null || r == null || gradoStr == null || w <= 0 || n <= 0 || r <= 0) {
+      return null;
+    }
+
+    final double? g = double.tryParse(gradoStr.replaceAll('G', ''));
+    if (g == null) return null;
+
+    final double ePer = (9549.2966 * g) / n; // g-mm/kg
+    final double uPer = ePer * w; // g-mm total
+    final double uPerPlane = uPer / numPlanos; // g-mm por plano
+    final double mPerPlane = uPerPlane / r; // g por plano en radio r
+
+    if (mt1Temp == null || v0 == null) return null;
+    final List<Complejo> finalVib = vVerificacion ?? v0!;
+    final List<Complejo> initialVib = v0Original ?? v0!;
+
+    // Plano 1
+    final m_t1 = mt1Temp!.modulo;
+    final v10 = initialVib[0];
+    final v11 = (v1Temp != null && v1Temp!.isNotEmpty) ? v1Temp![0] : null;
+    if (v11 == null) return null;
+    final effect1 = (v11 - v10).modulo;
+    if (effect1 < 1e-5) return null;
+    final double s1 = (m_t1 * r) / effect1; // g-mm / unit_vib
+    final double vFinal1 = finalVib[0].modulo;
+    final double uResidual1 = s1 * vFinal1; // g-mm residual
+    final double mResidual1 = uResidual1 / r; // g residual en radio r
+    final bool cumple1 = uResidual1 <= uPerPlane;
+
+    // Plano 2
+    double? s2;
+    double? uResidual2;
+    double? mResidual2;
+    bool? cumple2;
+
+    if (numPlanos == 2) {
+      final m_t2 = mt2Temp?.modulo ?? m_t1;
+      final v20 = initialVib.length > 1 ? initialVib[1] : null;
+      final v22 = (v2Temp != null && v2Temp!.length > 1) ? v2Temp![1] : null;
+      if (v20 == null || v22 == null) return null;
+      final effect2 = (v22 - v20).modulo;
+      if (effect2 < 1e-5) return null;
+      s2 = (m_t2 * r) / effect2; // g-mm / unit_vib
+      final double vFinal2 = finalVib.length > 1 ? finalVib[1].modulo : 0.0;
+      uResidual2 = s2 * vFinal2; // g-mm residual
+      mResidual2 = uResidual2 / r; // g residual en radio r
+      cumple2 = uResidual2 <= uPerPlane;
+    }
+
+    final bool cumpleTodo = cumple1 && (numPlanos == 1 || (cumple2 ?? false));
+
+    return {
+      'g': g,
+      'ePer': ePer,
+      'uPer': uPer,
+      'uPerPlane': uPerPlane,
+      'mPerPlane': mPerPlane,
+      's1': s1,
+      'uResidual1': uResidual1,
+      'mResidual1': mResidual1,
+      'cumple1': cumple1,
+      's2': s2,
+      'uResidual2': uResidual2,
+      'mResidual2': mResidual2,
+      'cumple2': cumple2,
+      'cumpleTodo': cumpleTodo,
+    };
   }
 }
