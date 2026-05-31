@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../models/complejo.dart';
 import '../models/rotor_config.dart';
 import '../models/historial_item.dart';
@@ -679,4 +680,117 @@ class BalanceoProvider extends ChangeNotifier {
     return alabeCercano;
   }
 
+  Map<String, dynamic>? calcularDivisionPesos(
+    Complejo? masa, {
+    int? numAlabesOverride,
+    double? anguloRefOverride,
+    bool? numeracionHorariaOverride,
+  }) {
+    if (masa == null || config == null) return null;
+
+    final numAlabes = numAlabesOverride ?? config!.numAlabes;
+    if (numAlabes <= 1) return null;
+
+    final ref = anguloRefOverride ?? config!.anguloReferenciaAlabe1;
+    final numHoraria = numeracionHorariaOverride ?? config!.numeracionHoraria;
+    final sentidoHorario = config!.sentido == SentidoGiro.horario;
+
+    final paso = 360.0 / numAlabes;
+
+    // Convertimos la fase de la masa a ángulo absoluto cartesiano
+    double angMasaAbs = config!.keyphasorAngulo + (sentidoHorario ? masa.anguloGrados : -masa.anguloGrados);
+
+    // Calcular ángulo relativo a la referencia del Alabe 1
+    double anguloRelativo = angMasaAbs - ref;
+    if (numHoraria) {
+      anguloRelativo = -anguloRelativo;
+    }
+
+    // Normalizar a [0, 360)
+    anguloRelativo = anguloRelativo % 360;
+    if (anguloRelativo < 0) anguloRelativo += 360;
+
+    double kDouble = anguloRelativo / paso;
+    int indexA = kDouble.floor();
+    int alabeA = indexA + 1;
+    int alabeB = (indexA + 1) % numAlabes + 1;
+
+    // Obtener los ángulos absolutos cartesianos de los dos álabes
+    double angAlabeA = ref + (numHoraria ? -indexA * paso : indexA * paso);
+    double angAlabeB = ref + (numHoraria ? -(indexA + 1) * paso : (indexA + 1) * paso);
+
+    // Normalizar ángulos de álabes
+    angAlabeA = angAlabeA % 360;
+    if (angAlabeA < 0) angAlabeA += 360;
+    angAlabeB = angAlabeB % 360;
+    if (angAlabeB < 0) angAlabeB += 360;
+
+    // Diferencias angulares con signo en el círculo
+    double diffMasaA = (angMasaAbs - angAlabeA) % 360;
+    if (diffMasaA < 0) diffMasaA += 360;
+    if (diffMasaA > 180) diffMasaA -= 360;
+
+    double diffBA = (angAlabeB - angAlabeA) % 360;
+    if (diffBA < 0) diffBA += 360;
+    if (diffBA > 180) diffBA -= 360;
+
+    double thetaA = 0.0;
+    double thetaB = diffBA * math.pi / 180.0;
+    double theta = diffMasaA * math.pi / 180.0;
+
+    double den = math.sin(thetaB - thetaA);
+    double masaA = 0.0;
+    double masaB = 0.0;
+
+    if (den.abs() > 1e-6) {
+      masaA = masa.modulo * math.sin(thetaB - theta) / den;
+      masaB = masa.modulo * math.sin(theta - thetaA) / den;
+    } else {
+      masaA = masa.modulo;
+      masaB = 0.0;
+    }
+
+    return {
+      'alabeA': alabeA,
+      'masaA': masaA,
+      'alabeB': alabeB,
+      'masaB': masaB,
+    };
+  }
+
+  Complejo calcularMasaEquivalenteDivision({
+    required double masaA,
+    required int alabeA,
+    required double masaB,
+    required int alabeB,
+    int? numAlabesOverride,
+    double? anguloRefOverride,
+    bool? numeracionHorariaOverride,
+  }) {
+    if (config == null) return Complejo(0, 0);
+
+    final numAlabes = numAlabesOverride ?? config!.numAlabes;
+    if (numAlabes <= 1) return Complejo(0, 0);
+
+    final ref = anguloRefOverride ?? config!.anguloReferenciaAlabe1;
+    final numHoraria = numeracionHorariaOverride ?? config!.numeracionHoraria;
+    final sentidoHorario = config!.sentido == SentidoGiro.horario;
+    final keyphasorAngulo = config!.keyphasorAngulo;
+
+    final paso = 360.0 / numAlabes;
+    final indexA = alabeA - 1;
+    final indexB = alabeB - 1;
+
+    // Ángulos absolutos cartesianos
+    double angAlabeA = ref + (numHoraria ? -indexA * paso : indexA * paso);
+    double angAlabeB = ref + (numHoraria ? -indexB * paso : indexB * paso);
+
+    // Convertir de ángulo físico absoluto a la fase del Complejo (relativa al KP)
+    double phaseA = sentidoHorario ? (angAlabeA - keyphasorAngulo) : (keyphasorAngulo - angAlabeA);
+    double phaseB = sentidoHorario ? (angAlabeB - keyphasorAngulo) : (keyphasorAngulo - angAlabeB);
+
+    final vA = Complejo.desdePolar(masaA, phaseA);
+    final vB = Complejo.desdePolar(masaB, phaseB);
+    return vA + vB;
+  }
 }

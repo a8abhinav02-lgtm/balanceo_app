@@ -39,6 +39,12 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
     Color(0xFFE65100), // Amber
   ];
 
+  void _onInputChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -71,6 +77,13 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
         _v2FaseControllers[i].text = provider.v2Temp![i].anguloGrados.toString();
       }
     }
+
+    for (int i = 0; i < _numCanales; i++) {
+      _v1AmpControllers[i].addListener(_onInputChanged);
+      _v1FaseControllers[i].addListener(_onInputChanged);
+      _v2AmpControllers[i].addListener(_onInputChanged);
+      _v2FaseControllers[i].addListener(_onInputChanged);
+    }
   }
 
   @override
@@ -80,6 +93,10 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
     _mt2ModController.dispose();
     _mt2FaseController.dispose();
     for (int i = 0; i < _numCanales; i++) {
+      _v1AmpControllers[i].removeListener(_onInputChanged);
+      _v1FaseControllers[i].removeListener(_onInputChanged);
+      _v2AmpControllers[i].removeListener(_onInputChanged);
+      _v2FaseControllers[i].removeListener(_onInputChanged);
       _v1AmpControllers[i].dispose();
       _v1FaseControllers[i].dispose();
       _v2AmpControllers[i].dispose();
@@ -92,6 +109,57 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
   Widget build(BuildContext context) {
     final provider = Provider.of<BalanceoProvider>(context);
     final es2Planos = provider.config?.numPlanos == 2;
+
+    // Determinar si debemos mostrar la alerta global y el cálculo por canal
+    bool mostrarAlertaGlobal = false;
+    final List<bool> fails = [];
+    final List<bool> active = [];
+    final List<double?> ampChanges = List.filled(_numCanales, null);
+    final List<double?> phaseChanges = List.filled(_numCanales, null);
+    final List<bool> channelFails = List.filled(_numCanales, false);
+
+    for (int i = 0; i < _numCanales; i++) {
+      final ampController = (_paso == 1) ? _v1AmpControllers[i] : _v2AmpControllers[i];
+      final faseController = (_paso == 1) ? _v1FaseControllers[i] : _v2FaseControllers[i];
+
+      final amp = double.tryParse(ampController.text);
+      final fase = double.tryParse(faseController.text);
+
+      if (amp != null && fase != null) {
+        active.add(true);
+        final v0Val = (provider.v0 != null && i < provider.v0!.length) ? provider.v0![i] : null;
+        if (v0Val != null) {
+          final double initialAmp = v0Val.modulo;
+          final double initialPhase = v0Val.anguloGrados;
+
+          if (initialAmp > 0) {
+            ampChanges[i] = ((amp - initialAmp).abs() / initialAmp) * 100;
+          } else {
+            ampChanges[i] = 0.0;
+          }
+
+          double phaseDiff = (fase - initialPhase).abs() % 360;
+          phaseChanges[i] = phaseDiff > 180 ? 360 - phaseDiff : phaseDiff;
+
+          if ((ampChanges[i] ?? 0.0) < 30.0 && (phaseChanges[i] ?? 0.0) < 30.0) {
+            fails.add(true);
+            channelFails[i] = true;
+          } else {
+            fails.add(false);
+            channelFails[i] = false;
+          }
+        } else {
+          fails.add(false);
+        }
+      } else {
+        active.add(false);
+        fails.add(false);
+      }
+    }
+
+    if (active.isNotEmpty && active.any((e) => e) && fails.where((e) => e).length == active.where((e) => e).length) {
+      mostrarAlertaGlobal = true;
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -166,6 +234,43 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
               const SizedBox(height: 12),
             ],
 
+            if (mostrarAlertaGlobal) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.amber.shade300),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.amber.shade800, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Cambio de Señal Insuficiente',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.amber.shade900),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'La masa de prueba colocada no ha provocado un cambio significativo en la vibración en ninguno de los canales. '
+                            'Se requiere un cambio de al menos 30% en amplitud o 30° en fase para calcular coeficientes de influencia precisos. '
+                            'Se recomienda detener el rotor e incrementar la masa de prueba.',
+                            style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             ...List.generate(_numCanales, (i) {
               final tag = provider.config?.canales[i].tag ?? 'Canal ${i + 1}';
               final color = _colorsList[i % _colorsList.length];
@@ -201,6 +306,42 @@ class _PruebaCoeficientesScreenState extends State<PruebaCoeficientesScreen> {
                           ),
                         ],
                       ),
+                      if (ampChanges[i] != null && phaseChanges[i] != null) ...[
+                        const SizedBox(height: 12),
+                        const Divider(height: 1),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Cambio: ΔAmp: ${ampChanges[i]!.toStringAsFixed(1)}% | ΔFase: ${phaseChanges[i]!.toStringAsFixed(1)}°',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: channelFails[i] ? Colors.orange.shade800 : Colors.teal.shade800,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: channelFails[i] ? Colors.orange.shade50 : Colors.teal.shade50,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: channelFails[i] ? Colors.orange.shade200 : Colors.teal.shade200),
+                              ),
+                              child: Text(
+                                channelFails[i] ? 'Señal Insuficiente' : 'Señal OK',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: channelFails[i] ? Colors.orange.shade900 : Colors.teal.shade900,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
