@@ -57,6 +57,7 @@ class PolarPlot extends StatelessWidget {
   final List<Complejo> vectores;
   final List<Color> colores;
   final List<String> etiquetas;
+  final List<bool>? esDiscontinuo;
   final double maxRadio;
   final RotorConfig? configOverride;
 
@@ -68,6 +69,7 @@ class PolarPlot extends StatelessWidget {
     required this.vectores,
     required this.colores,
     required this.etiquetas,
+    this.esDiscontinuo,
     this.maxRadio = 100,
     this.configOverride,
     this.masas = const [],
@@ -85,6 +87,10 @@ class PolarPlot extends StatelessWidget {
       ...List.filled(etiquetas.length, false),
       ...List.filled(masas.length, true),
     ];
+    final allIsDashed = [
+      ...List.generate(etiquetas.length, (i) => esDiscontinuo != null && i < esDiscontinuo!.length && esDiscontinuo![i]),
+      ...List.filled(masas.length, false),
+    ];
 
     return Container(
       constraints: const BoxConstraints(maxWidth: 350),
@@ -100,6 +106,7 @@ class PolarPlot extends StatelessWidget {
               alignment: WrapAlignment.center,
               children: List.generate(allEtiquetas.length, (index) {
                 final isMasa = allIsMasa[index];
+                final isDashed = allIsDashed[index];
                 return Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -114,17 +121,22 @@ class PolarPlot extends StatelessWidget {
                             ),
                           )
                         : Container(
-                            width: 10,
-                            height: 10,
+                            width: 14,
+                            height: 4,
                             decoration: BoxDecoration(
-                              color: allColores[index],
+                              color: isDashed ? Colors.transparent : allColores[index],
+                              border: isDashed ? Border.all(color: allColores[index], width: 1.5) : null,
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
                     const SizedBox(width: 4),
                     Text(
                       allEtiquetas[index],
-                      style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        fontStyle: isDashed ? FontStyle.italic : FontStyle.normal,
+                      ),
                     ),
                   ],
                 );
@@ -141,6 +153,7 @@ class PolarPlot extends StatelessWidget {
                   vectores: vectores,
                   colores: colores,
                   etiquetas: etiquetas,
+                  esDiscontinuo: esDiscontinuo,
                   maxRadio: maxRadio,
                   config: config,
                   masas: masas,
@@ -158,6 +171,7 @@ class _PolarPainter extends CustomPainter {
   final List<Complejo> vectores;
   final List<Color> colores;
   final List<String> etiquetas;
+  final List<bool>? esDiscontinuo;
   final double maxRadio;
   final RotorConfig? config;
   final List<MasaMarker> masas;
@@ -166,6 +180,7 @@ class _PolarPainter extends CustomPainter {
     required this.vectores,
     required this.colores,
     required this.etiquetas,
+    this.esDiscontinuo,
     required this.maxRadio,
     this.config,
     this.masas = const [],
@@ -307,6 +322,7 @@ class _PolarPainter extends CustomPainter {
     // ── Vibration vectors ─────────────────────────────────────────────────
     for (int i = 0; i < vectores.length; i++) {
       final v = vectores[i];
+      final bool isDashed = esDiscontinuo != null && i < esDiscontinuo!.length && esDiscontinuo![i];
       double absDegrees =
           (config?.keyphasorAngulo ?? 0) + (sentidoHorario ? v.anguloGrados : -v.anguloGrados);
       double angRad = absRad(absDegrees);
@@ -320,18 +336,27 @@ class _PolarPainter extends CustomPainter {
 
       final vPaint = Paint()
         ..color = vecColor
-        ..strokeWidth = 2.0
+        ..strokeWidth = isDashed ? 2.2 : 2.0
         ..style = PaintingStyle.stroke;
-      canvas.drawLine(centro, punta, vPaint);
+
+      if (isDashed) {
+        _drawDashedLine(canvas, centro, punta, vPaint);
+      } else {
+        canvas.drawLine(centro, punta, vPaint);
+      }
 
       double pAng = atan2(y - centerY, x - centerX);
       double f1 = pAng + 150 * pi / 180;
       double f2 = pAng - 150 * pi / 180;
       double arrowLen = min(10, modEsc / 3);
-      canvas.drawLine(punta, Offset(punta.dx + arrowLen * cos(f1), punta.dy + arrowLen * sin(f1)), vPaint);
-      canvas.drawLine(punta, Offset(punta.dx + arrowLen * cos(f2), punta.dy + arrowLen * sin(f2)), vPaint);
+      final arrowPaint = Paint()
+        ..color = vecColor
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke;
+      canvas.drawLine(punta, Offset(punta.dx + arrowLen * cos(f1), punta.dy + arrowLen * sin(f1)), arrowPaint);
+      canvas.drawLine(punta, Offset(punta.dx + arrowLen * cos(f2), punta.dy + arrowLen * sin(f2)), arrowPaint);
 
-      // Short label: V0 / V1 / V2
+      // Short label: V0 / V1 / V2 / ΔV1 / ΔV2
       String shortLabel = vecEtiqueta.split(' ').first;
       if (vecEtiqueta.toLowerCase().contains('w/p')) {
         shortLabel = vecEtiqueta.contains('P2') || vecEtiqueta.contains('Y')
@@ -403,6 +428,26 @@ class _PolarPainter extends CustomPainter {
         ? Offset(offset.dx - tp.width / 2, offset.dy - tp.height / 2)
         : offset;
     tp.paint(canvas, paintOffset);
+  }
+
+  void _drawDashedLine(Canvas canvas, Offset p1, Offset p2, Paint paint, {double dashLength = 6, double dashSpace = 4}) {
+    final double dx = p2.dx - p1.dx;
+    final double dy = p2.dy - p1.dy;
+    final double distance = sqrt(dx * dx + dy * dy);
+    if (distance == 0) return;
+    final double ux = dx / distance;
+    final double uy = dy / distance;
+
+    double current = 0;
+    while (current < distance) {
+      final double next = min(current + dashLength, distance);
+      canvas.drawLine(
+        Offset(p1.dx + ux * current, p1.dy + uy * current),
+        Offset(p1.dx + ux * next, p1.dy + uy * next),
+        paint,
+      );
+      current += dashLength + dashSpace;
+    }
   }
 
   @override
