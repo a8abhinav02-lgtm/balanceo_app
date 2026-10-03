@@ -41,6 +41,8 @@ class RotorConfig {
   set sensorYAngulo(double v) { if (canales.length > 1) canales[1].angulo = v; }
 
   String get unidadStr => unidadVibracion == UnidadVibracion.micras ? 'µm' : 'mils';
+  String get unidadVibracionTexto => unidadStr;
+  String get unidadPesoTexto => 'g';
 
   RotorConfig({
     required this.nombreActivo,

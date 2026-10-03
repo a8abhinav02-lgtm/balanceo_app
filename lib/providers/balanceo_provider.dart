@@ -21,6 +21,16 @@ class BalanceoProvider extends ChangeNotifier {
   Complejo? masaRealInstalada1;
   Complejo? masaRealInstalada2;
 
+  // Masas de Corrección definidas manualmente por el usuario en esta versión simplificada
+  Complejo? mc1Manual;
+  Complejo? mc2Manual;
+
+  // Operaciones Vectoriales Auxiliares (sin cálculo de balanceo automático)
+  Complejo? get deltaV1_1 => (v1_1_temp != null && v0_1 != null) ? v1_1_temp! - v0_1! : null;
+  Complejo? get deltaV1_2 => (v1_2_temp != null && v0_2 != null) ? v1_2_temp! - v0_2! : null;
+  Complejo? get deltaV2_1 => (v2_1_temp != null && v0_1 != null) ? v2_1_temp! - v0_1! : null;
+  Complejo? get deltaV2_2 => (v2_2_temp != null && v0_2 != null) ? v2_2_temp! - v0_2! : null;
+
   // Propiedades de compatibilidad retroactiva
   Complejo? get v0_1 => (v0 != null && v0!.isNotEmpty) ? v0![0] : null;
   set v0_1(Complejo? val) {
@@ -269,6 +279,8 @@ class BalanceoProvider extends ChangeNotifier {
     vVerificacion = null;
     masaRealInstalada1 = null;
     masaRealInstalada2 = null;
+    mc1Manual = null;
+    mc2Manual = null;
     // El historial no se borra, se mantiene por activo
     saveToDisk();
   }

@@ -527,7 +527,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                 );
                 provider.setConfig(config).then((_) {
                   if (!context.mounted) return;
-                  Navigator.pushNamed(context, '/medicion');
+                  Navigator.pushNamed(context, '/graficador_lecturas');
                 });
               }
             },
@@ -537,7 +537,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Comenzar Medición', style: TextStyle(fontSize: 18)),
+                Text('Ir al Graficador Vectorial', style: TextStyle(fontSize: 18)),
                 SizedBox(width: 8),
                 Icon(Icons.arrow_forward),
               ],

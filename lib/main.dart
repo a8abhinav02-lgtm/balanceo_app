@@ -7,6 +7,9 @@ import 'screens/prueba_coeficientes_screen.dart';
 import 'screens/resultados_screen.dart';
 import 'screens/historial_screen.dart';
 
+import 'screens/graficador_lecturas_screen.dart';
+import 'screens/graficador_manual_screen.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -19,7 +22,7 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => BalanceoProvider(),
       child: MaterialApp(
-        title: 'Balanceo por Coeficientes',
+        title: 'Graficador Vectorial de Campo',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
             seedColor: Colors.blueGrey,
@@ -84,6 +87,8 @@ class MyApp extends StatelessWidget {
         initialRoute: '/',
         routes: {
           '/': (context) => const ConfiguracionScreen(),
+          '/graficador_lecturas': (context) => const GraficadorLecturasScreen(),
+          '/graficador_manual': (context) => const GraficadorManualScreen(),
           '/medicion': (context) => const MedicionInicialScreen(),
           '/prueba': (context) => const PruebaCoeficientesScreen(),
           '/resultados': (context) => const ResultadosScreen(),

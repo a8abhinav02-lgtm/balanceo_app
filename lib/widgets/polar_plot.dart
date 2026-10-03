@@ -176,8 +176,8 @@ class _PolarPainter extends CustomPainter {
     final double centerX = size.width / 2;
     final double centerY = size.height / 2;
     final Offset centro = Offset(centerX, centerY);
-    // Dynamic scale based only on vibration vector range
-    final double escala = (size.width * 0.65) / (2 * maxRadio);
+    final double safeMaxRadio = (maxRadio <= 0 || maxRadio.isNaN || maxRadio.isInfinite) ? 10.0 : maxRadio;
+    final double escala = (size.width * 0.65) / (2 * safeMaxRadio);
 
     final bool sentidoHorario = config?.sentido == SentidoGiro.horario;
 
@@ -188,14 +188,14 @@ class _PolarPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     for (int r = 1; r <= 4; r++) {
-      double radio = (maxRadio * r / 4) * escala;
+      double radio = (safeMaxRadio * r / 4) * escala;
       canvas.drawCircle(centro, radio, gridPaint);
     }
 
     for (int i = 0; i < 12; i++) {
       double angulo = i * 30 * pi / 180;
-      double x = centerX + maxRadio * escala * cos(angulo);
-      double y = centerY + maxRadio * escala * sin(angulo);
+      double x = centerX + safeMaxRadio * escala * cos(angulo);
+      double y = centerY + safeMaxRadio * escala * sin(angulo);
       canvas.drawLine(centro, Offset(x, y), gridPaint);
     }
 
@@ -315,8 +315,11 @@ class _PolarPainter extends CustomPainter {
       final y = centerY + modEsc * sin(angRad);
       final punta = Offset(x, y);
 
+      final Color vecColor = i < colores.length ? colores[i] : Colors.blue;
+      final String vecEtiqueta = i < etiquetas.length ? etiquetas[i] : 'V${i + 1}';
+
       final vPaint = Paint()
-        ..color = colores[i]
+        ..color = vecColor
         ..strokeWidth = 2.0
         ..style = PaintingStyle.stroke;
       canvas.drawLine(centro, punta, vPaint);
@@ -328,16 +331,15 @@ class _PolarPainter extends CustomPainter {
       canvas.drawLine(punta, Offset(punta.dx + arrowLen * cos(f1), punta.dy + arrowLen * sin(f1)), vPaint);
       canvas.drawLine(punta, Offset(punta.dx + arrowLen * cos(f2), punta.dy + arrowLen * sin(f2)), vPaint);
 
-      // Short label: V1 / V2
-      String shortLabel =
-          etiquetas[i].contains('Y') || etiquetas[i].contains('2') ? 'V2' : 'V1';
-      if (etiquetas[i].toLowerCase().contains('w/p')) {
-        shortLabel = etiquetas[i].contains('P2') || etiquetas[i].contains('Y')
+      // Short label: V0 / V1 / V2
+      String shortLabel = vecEtiqueta.split(' ').first;
+      if (vecEtiqueta.toLowerCase().contains('w/p')) {
+        shortLabel = vecEtiqueta.contains('P2') || vecEtiqueta.contains('Y')
             ? "V2'"
             : "V1'";
       }
       _drawLabel(canvas, Offset(punta.dx + 4, punta.dy - 12), shortLabel,
-          colores[i], fontSize: 8, bold: true);
+          vecColor, fontSize: 8, bold: true);
     }
 
     // ── Mass markers (dot on the outer ring) ──────────────────────────────
