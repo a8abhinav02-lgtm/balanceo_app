@@ -53,11 +53,29 @@ class MasaMarker {
   const MasaMarker({required this.masa, required this.color, required this.etiqueta});
 }
 
+/// Represents a connecting vector drawn from the tip of one vector to another (Vector Triangle).
+class VectorConector {
+  final Complejo origen;
+  final Complejo destino;
+  final Color color;
+  final String etiqueta;
+  final bool esDiscontinuo;
+
+  const VectorConector({
+    required this.origen,
+    required this.destino,
+    required this.color,
+    required this.etiqueta,
+    this.esDiscontinuo = false,
+  });
+}
+
 class PolarPlot extends StatelessWidget {
   final List<Complejo> vectores;
   final List<Color> colores;
   final List<String> etiquetas;
   final List<bool>? esDiscontinuo;
+  final List<VectorConector> conectores;
   final double maxRadio;
   final RotorConfig? configOverride;
 
@@ -70,6 +88,7 @@ class PolarPlot extends StatelessWidget {
     required this.colores,
     required this.etiquetas,
     this.esDiscontinuo,
+    this.conectores = const [],
     this.maxRadio = 100,
     this.configOverride,
     this.masas = const [],
@@ -80,15 +99,24 @@ class PolarPlot extends StatelessWidget {
     final provider = Provider.of<BalanceoProvider>(context, listen: false);
     final config = configOverride ?? provider.config;
 
-    // Build combined legend: vibration vectors + mass markers
-    final allEtiquetas = [...etiquetas, ...masas.map((m) => m.etiqueta)];
-    final allColores = [...colores, ...masas.map((m) => m.color)];
+    // Build combined legend: vibration vectors + connectors + mass markers
+    final allEtiquetas = [
+      ...etiquetas,
+      ...conectores.map((c) => c.etiqueta),
+      ...masas.map((m) => m.etiqueta),
+    ];
+    final allColores = [
+      ...colores,
+      ...conectores.map((c) => c.color),
+      ...masas.map((m) => m.color),
+    ];
     final allIsMasa = [
-      ...List.filled(etiquetas.length, false),
+      ...List.filled(etiquetas.length + conectores.length, false),
       ...List.filled(masas.length, true),
     ];
     final allIsDashed = [
       ...List.generate(etiquetas.length, (i) => esDiscontinuo != null && i < esDiscontinuo!.length && esDiscontinuo![i]),
+      ...conectores.map((c) => c.esDiscontinuo),
       ...List.filled(masas.length, false),
     ];
 
@@ -154,6 +182,7 @@ class PolarPlot extends StatelessWidget {
                   colores: colores,
                   etiquetas: etiquetas,
                   esDiscontinuo: esDiscontinuo,
+                  conectores: conectores,
                   maxRadio: maxRadio,
                   config: config,
                   masas: masas,
@@ -172,6 +201,7 @@ class _PolarPainter extends CustomPainter {
   final List<Color> colores;
   final List<String> etiquetas;
   final List<bool>? esDiscontinuo;
+  final List<VectorConector> conectores;
   final double maxRadio;
   final RotorConfig? config;
   final List<MasaMarker> masas;
@@ -181,6 +211,7 @@ class _PolarPainter extends CustomPainter {
     required this.colores,
     required this.etiquetas,
     this.esDiscontinuo,
+    this.conectores = const [],
     required this.maxRadio,
     this.config,
     this.masas = const [],
@@ -365,6 +396,51 @@ class _PolarPainter extends CustomPainter {
       }
       _drawLabel(canvas, Offset(punta.dx + 4, punta.dy - 12), shortLabel,
           vecColor, fontSize: 8, bold: true);
+    }
+
+    // ── Connecting vectors (Triángulo tip-to-tip) ─────────────────────────
+    for (final c in conectores) {
+      double absDegreesOrig =
+          (config?.keyphasorAngulo ?? 0) + (sentidoHorario ? c.origen.anguloGrados : -c.origen.anguloGrados);
+      double angRadOrig = absRad(absDegreesOrig);
+      double xOrig = centerX + (c.origen.modulo * escala) * cos(angRadOrig);
+      double yOrig = centerY + (c.origen.modulo * escala) * sin(angRadOrig);
+      Offset pOrig = Offset(xOrig, yOrig);
+
+      double absDegreesDest =
+          (config?.keyphasorAngulo ?? 0) + (sentidoHorario ? c.destino.anguloGrados : -c.destino.anguloGrados);
+      double angRadDest = absRad(absDegreesDest);
+      double xDest = centerX + (c.destino.modulo * escala) * cos(angRadDest);
+      double yDest = centerY + (c.destino.modulo * escala) * sin(angRadDest);
+      Offset pDest = Offset(xDest, yDest);
+
+      final cPaint = Paint()
+        ..color = c.color
+        ..strokeWidth = 2.2
+        ..style = PaintingStyle.stroke;
+
+      if (c.esDiscontinuo) {
+        _drawDashedLine(canvas, pOrig, pDest, cPaint, dashLength: 5, dashSpace: 3);
+      } else {
+        canvas.drawLine(pOrig, pDest, cPaint);
+      }
+
+      // Flecha en destino apuntando de pOrig a pDest
+      double pAng = atan2(pDest.dy - pOrig.dy, pDest.dx - pOrig.dx);
+      double f1 = pAng + 150 * pi / 180;
+      double f2 = pAng - 150 * pi / 180;
+      double arrowLen = min(10.0, (pDest - pOrig).distance / 3);
+      final arrowPaint = Paint()
+        ..color = c.color
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke;
+      canvas.drawLine(pDest, Offset(pDest.dx + arrowLen * cos(f1), pDest.dy + arrowLen * sin(f1)), arrowPaint);
+      canvas.drawLine(pDest, Offset(pDest.dx + arrowLen * cos(f2), pDest.dy + arrowLen * sin(f2)), arrowPaint);
+
+      // Etiqueta en el punto medio
+      Offset mid = Offset((pOrig.dx + pDest.dx) / 2, (pOrig.dy + pDest.dy) / 2);
+      String shortConLabel = c.etiqueta.split(' ').first;
+      _drawLabel(canvas, Offset(mid.dx + 4, mid.dy - 10), shortConLabel, c.color, fontSize: 8, bold: true);
     }
 
     // ── Mass markers (dot on the outer ring) ──────────────────────────────

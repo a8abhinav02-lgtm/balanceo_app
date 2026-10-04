@@ -86,6 +86,7 @@ class _GraficadorManualScreenState extends State<GraficadorManualScreen> {
     final List<Complejo> previewVectores = [];
     final List<Color> previewColores = [];
     final List<String> previewEtiquetas = [];
+    final List<VectorConector> previewConectores = [];
     final List<MasaMarker> previewMasas = [];
 
     // Colors
@@ -117,7 +118,17 @@ class _GraficadorManualScreenState extends State<GraficadorManualScreen> {
         final tag = provider.config?.canales[i].tag ?? 'Sensor ${i + 1}';
         previewVectores.add(provider.v1Temp![i]);
         previewColores.add(_colorsV1[i % _colorsV1.length]);
-        previewEtiquetas.add('V1 P1 ($tag)');
+        previewEtiquetas.add('V1 ($tag)');
+
+        if (provider.v0 != null && i < provider.v0!.length) {
+          previewConectores.add(VectorConector(
+            origen: provider.v0![i],
+            destino: provider.v1Temp![i],
+            color: const Color(0xFF00838F),
+            etiqueta: 'ΔV1 ($tag)',
+            esDiscontinuo: false,
+          ));
+        }
       }
     }
 
@@ -136,7 +147,17 @@ class _GraficadorManualScreenState extends State<GraficadorManualScreen> {
           final tag = provider.config?.canales[i].tag ?? 'Sensor ${i + 1}';
           previewVectores.add(provider.v2Temp![i]);
           previewColores.add(_colorsV2[i % _colorsV2.length]);
-          previewEtiquetas.add('V2 P2 ($tag)');
+          previewEtiquetas.add('V2 ($tag)');
+
+          if (provider.v0 != null && i < provider.v0!.length) {
+            previewConectores.add(VectorConector(
+              origen: provider.v0![i],
+              destino: provider.v2Temp![i],
+              color: const Color(0xFFE65100),
+              etiqueta: 'ΔV2 ($tag)',
+              esDiscontinuo: false,
+            ));
+          }
         }
       }
     }
@@ -295,6 +316,7 @@ class _GraficadorManualScreenState extends State<GraficadorManualScreen> {
                         vectores: previewVectores,
                         colores: previewColores,
                         etiquetas: previewEtiquetas,
+                        conectores: previewConectores,
                         maxRadio: maxRadio,
                         masas: previewMasas,
                       ),
