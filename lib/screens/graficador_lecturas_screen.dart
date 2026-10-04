@@ -32,23 +32,29 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
   late List<TextEditingController> _v2FaseControllers;
 
   int _numCanales = 0;
-  int _selectedView = 0; // 0: Plano 1, 1: Plano 2, 2: Global
+  int _selectedView = 0; // 0: Global (Todos), 1: Solo Canal 1 (1H), 2: Solo Canal 2 (2H)
   bool _mostrarTriangulo = true;
   bool _mostrarTrasladado = true;
 
   final List<Color> _colorsV0 = const [
-    Color(0xFF0D47A1), // Azul oscuro
-    Color(0xFFB71C1C), // Rojo oscuro
+    Color(0xFF0D47A1), // 1H: Azul oscuro
+    Color(0xFFB71C1C), // 2H: Rojo oscuro
+    Color(0xFF1B5E20), // 3: Verde oscuro
+    Color(0xFF4A148C), // 4: Morado oscuro
   ];
 
   final List<Color> _colorsV1 = const [
-    Color(0xFF0288D1), // Celeste
-    Color(0xFFC2185B), // Rosado
+    Color(0xFF0288D1), // 1H: Celeste brillante
+    Color(0xFFE91E63), // 2H: Rosado/Magenta
+    Color(0xFF4CAF50), // 3: Verde claro
+    Color(0xFF9C27B0), // 4: Morado claro
   ];
 
   final List<Color> _colorsV2 = const [
-    Color(0xFF009688), // Verde Agua
-    Color(0xFFE65100), // Naranja
+    Color(0xFF00897B), // 1H: Verde azulado
+    Color(0xFFE65100), // 2H: Naranja intenso
+    Color(0xFFFF8F00), // 3: Ámbar
+    Color(0xFF5D4037), // 4: Café
   ];
 
   @override
@@ -191,12 +197,14 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
     final unidadVib = provider.config?.unidadStr ?? 'µm';
     final unidadPeso = 'g';
 
-    final tag1 = provider.config?.canales.isNotEmpty == true ? provider.config!.canales[0].tag : '1H';
-    final tag2 = provider.config != null && provider.config!.canales.length > 1
-        ? provider.config!.canales[1].tag
-        : '2H';
+    final List<String> channelTags = List.generate(_numCanales, (i) {
+      if (provider.config != null && i < provider.config!.canales.length) {
+        return provider.config!.canales[i].tag;
+      }
+      return i == 0 ? '1H' : (i == 1 ? '2H' : 'Ch ${i + 1}');
+    });
 
-    // Parse V0
+    // Parse V0 para todos los canales
     final List<Complejo?> parsedV0 = List.generate(_numCanales, (i) {
       final amp = double.tryParse(_v0AmpControllers[i].text);
       final fase = double.tryParse(_v0FaseControllers[i].text);
@@ -238,7 +246,7 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
       return null;
     });
 
-    // Construcción de listas para PolarPlot
+    // Construcción de listas para PolarPlot considerando TODOS los canales activos
     final List<Complejo> previewVectores = [];
     final List<Color> previewColores = [];
     final List<String> previewEtiquetas = [];
@@ -246,215 +254,105 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
     final List<VectorConector> previewConectores = [];
     final List<MasaMarker> previewMasas = [];
 
-    if (!is2Planos) {
-      // ── 1 PLANO ──────────────────────────────────────────────────────────
-      // V0
-      if (parsedV0.isNotEmpty && parsedV0[0] != null) {
-        previewVectores.add(parsedV0[0]!);
-        previewColores.add(_colorsV0[0]);
-        previewEtiquetas.add('V0 ($tag1)');
+    // 1. Masas de Prueba en el anillo exterior
+    if (parsedMt1 != null && (_selectedView == 0 || _selectedView == 1)) {
+      previewMasas.add(MasaMarker(
+        masa: parsedMt1,
+        color: Colors.blueGrey.shade800,
+        etiqueta: 'Mt1 ($mt1Masa $unidadPeso @ $mt1Fase°)',
+      ));
+    }
+
+    if (is2Planos && parsedMt2 != null && (_selectedView == 0 || _selectedView == 2)) {
+      previewMasas.add(MasaMarker(
+        masa: parsedMt2,
+        color: Colors.purple.shade700,
+        etiqueta: 'Mt2 ($mt2Masa $unidadPeso @ $mt2Fase°)',
+      ));
+    }
+
+    // 2. Iterar TODOS los canales (1H, 2H, etc.)
+    for (int i = 0; i < _numCanales; i++) {
+      // Filtrar según vista: 0 = Global (Todos), 1 = Solo Canal 1 (1H), 2 = Solo Canal 2 (2H)
+      if (_selectedView != 0 && _selectedView != (i + 1)) {
+        continue;
+      }
+
+      final tag = channelTags[i];
+      final colorV0 = _colorsV0[i % _colorsV0.length];
+      final colorV1 = _colorsV1[i % _colorsV1.length];
+      final colorV2 = _colorsV2[i % _colorsV2.length];
+
+      // A) Vibración Inicial V0
+      if (parsedV0[i] != null) {
+        previewVectores.add(parsedV0[i]!);
+        previewColores.add(colorV0);
+        previewEtiquetas.add('V0 ($tag)');
         previewEsDiscontinuo.add(false);
       }
 
-      // Mt1
-      if (parsedMt1 != null) {
-        previewMasas.add(MasaMarker(
-          masa: parsedMt1,
-          color: Colors.blueGrey.shade800,
-          etiqueta: 'Mt1 ($mt1Masa $unidadPeso @ $mt1Fase°)',
-        ));
-      }
-
-      // V1
-      if (parsedV1.isNotEmpty && parsedV1[0] != null) {
-        previewVectores.add(parsedV1[0]!);
-        previewColores.add(_colorsV1[0]);
-        previewEtiquetas.add('V1 ($tag1)');
+      // B) Corrida de Prueba 1 (V1)
+      if (parsedV1[i] != null) {
+        previewVectores.add(parsedV1[i]!);
+        previewColores.add(colorV1);
+        previewEtiquetas.add(is2Planos && i > 0 ? 'V1 ($tag - Cruz)' : 'V1 ($tag)');
         previewEsDiscontinuo.add(false);
 
-        if (parsedV0.isNotEmpty && parsedV0[0] != null) {
-          final v0 = parsedV0[0]!;
-          final v1 = parsedV1[0]!;
-          final deltaV = v1 - v0;
+        if (parsedV0[i] != null) {
+          final v0 = parsedV0[i]!;
+          final v1 = parsedV1[i]!;
+          final deltaV1 = v1 - v0;
 
-          // Triángulo Vectorial Punta a Punta (V0 -> V1)
+          // Triángulo Punta a Punta (V0 -> V1)
           if (_mostrarTriangulo) {
             previewConectores.add(VectorConector(
               origen: v0,
               destino: v1,
-              color: const Color(0xFF00838F), // Cian Oscuro
-              etiqueta: 'ΔV (Punta a Punta)',
+              color: colorV1,
+              etiqueta: 'ΔV1 ($tag)',
               esDiscontinuo: false,
             ));
           }
 
           // Vector Trasladado al Origen (0,0)
           if (_mostrarTrasladado) {
-            previewVectores.add(deltaV);
-            previewColores.add(const Color(0xFF00ACC1));
-            previewEtiquetas.add('ΔV Trasladado al Origen');
+            previewVectores.add(deltaV1);
+            previewColores.add(colorV1.withAlpha(220));
+            previewEtiquetas.add('ΔV1 Trasl ($tag)');
             previewEsDiscontinuo.add(true);
           }
         }
       }
-    } else {
-      // ── 2 PLANOS ──────────────────────────────────────────────────────────
-      // PESTAÑA 0: PLANO 1 (Sensor 1 / ej 1H)
-      if (_selectedView == 0 || _selectedView == 2) {
-        if (parsedV0.isNotEmpty && parsedV0[0] != null) {
-          previewVectores.add(parsedV0[0]!);
-          previewColores.add(_colorsV0[0]);
-          previewEtiquetas.add('V0 ($tag1)');
-          previewEsDiscontinuo.add(false);
-        }
 
-        if (parsedMt1 != null) {
-          previewMasas.add(MasaMarker(
-            masa: parsedMt1,
-            color: Colors.blueGrey.shade800,
-            etiqueta: 'Mt1 ($mt1Masa $unidadPeso @ $mt1Fase°)',
-          ));
-        }
+      // C) Corrida de Prueba 2 (V2 - si son 2 planos)
+      if (is2Planos && parsedV2[i] != null) {
+        previewVectores.add(parsedV2[i]!);
+        previewColores.add(colorV2);
+        previewEtiquetas.add(i == 0 ? 'V2 ($tag - Cruz)' : 'V2 ($tag)');
+        previewEsDiscontinuo.add(false);
 
-        // V1 en Canal 1 (Respuesta Directa P1)
-        if (parsedV1.isNotEmpty && parsedV1[0] != null) {
-          previewVectores.add(parsedV1[0]!);
-          previewColores.add(_colorsV1[0]);
-          previewEtiquetas.add('V1 ($tag1 - Dir)');
-          previewEsDiscontinuo.add(false);
+        if (parsedV0[i] != null) {
+          final v0 = parsedV0[i]!;
+          final v2 = parsedV2[i]!;
+          final deltaV2 = v2 - v0;
 
-          if (parsedV0.isNotEmpty && parsedV0[0] != null) {
-            final v0 = parsedV0[0]!;
-            final v1 = parsedV1[0]!;
-            final deltaV11 = v1 - v0;
-
-            if (_mostrarTriangulo) {
-              previewConectores.add(VectorConector(
-                origen: v0,
-                destino: v1,
-                color: const Color(0xFF00838F),
-                etiqueta: 'ΔV11 ($tag1)',
-                esDiscontinuo: false,
-              ));
-            }
-
-            if (_mostrarTrasladado) {
-              previewVectores.add(deltaV11);
-              previewColores.add(const Color(0xFF00ACC1));
-              previewEtiquetas.add('ΔV11 Trasl ($tag1)');
-              previewEsDiscontinuo.add(true);
-            }
+          // Triángulo Punta a Punta (V0 -> V2)
+          if (_mostrarTriangulo) {
+            previewConectores.add(VectorConector(
+              origen: v0,
+              destino: v2,
+              color: colorV2,
+              etiqueta: 'ΔV2 ($tag)',
+              esDiscontinuo: false,
+            ));
           }
-        }
 
-        // V2 en Canal 1 (Respuesta Cruzada con Mt2)
-        if (parsedV2.isNotEmpty && parsedV2[0] != null && (_selectedView == 0 || _selectedView == 2)) {
-          previewVectores.add(parsedV2[0]!);
-          previewColores.add(const Color(0xFF8E24AA));
-          previewEtiquetas.add('V2 ($tag1 - Cruz)');
-          previewEsDiscontinuo.add(false);
-
-          if (parsedV0.isNotEmpty && parsedV0[0] != null) {
-            final v0 = parsedV0[0]!;
-            final v2 = parsedV2[0]!;
-            final deltaV12 = v2 - v0;
-
-            if (_mostrarTriangulo) {
-              previewConectores.add(VectorConector(
-                origen: v0,
-                destino: v2,
-                color: const Color(0xFF8E24AA),
-                etiqueta: 'ΔV12 ($tag1)',
-                esDiscontinuo: true,
-              ));
-            }
-
-            if (_mostrarTrasladado) {
-              previewVectores.add(deltaV12);
-              previewColores.add(const Color(0xFFBA68C8));
-              previewEtiquetas.add('ΔV12 Trasl ($tag1)');
-              previewEsDiscontinuo.add(true);
-            }
-          }
-        }
-      }
-
-      // PESTAÑA 1: PLANO 2 (Sensor 2 / ej 2H)
-      if (_selectedView == 1 || _selectedView == 2) {
-        if (parsedV0.length > 1 && parsedV0[1] != null) {
-          previewVectores.add(parsedV0[1]!);
-          previewColores.add(_colorsV0[1]);
-          previewEtiquetas.add('V0 ($tag2)');
-          previewEsDiscontinuo.add(false);
-        }
-
-        if (parsedMt2 != null) {
-          previewMasas.add(MasaMarker(
-            masa: parsedMt2,
-            color: Colors.purple.shade700,
-            etiqueta: 'Mt2 ($mt2Masa $unidadPeso @ $mt2Fase°)',
-          ));
-        }
-
-        // V2 en Canal 2 (Respuesta Directa P2)
-        if (parsedV2.length > 1 && parsedV2[1] != null) {
-          previewVectores.add(parsedV2[1]!);
-          previewColores.add(_colorsV2[1]);
-          previewEtiquetas.add('V2 ($tag2 - Dir)');
-          previewEsDiscontinuo.add(false);
-
-          if (parsedV0.length > 1 && parsedV0[1] != null) {
-            final v0 = parsedV0[1]!;
-            final v2 = parsedV2[1]!;
-            final deltaV22 = v2 - v0;
-
-            if (_mostrarTriangulo) {
-              previewConectores.add(VectorConector(
-                origen: v0,
-                destino: v2,
-                color: const Color(0xFFE65100),
-                etiqueta: 'ΔV22 ($tag2)',
-                esDiscontinuo: false,
-              ));
-            }
-
-            if (_mostrarTrasladado) {
-              previewVectores.add(deltaV22);
-              previewColores.add(const Color(0xFFEF6C00));
-              previewEtiquetas.add('ΔV22 Trasl ($tag2)');
-              previewEsDiscontinuo.add(true);
-            }
-          }
-        }
-
-        // V1 en Canal 2 (Respuesta Cruzada con Mt1)
-        if (parsedV1.length > 1 && parsedV1[1] != null && (_selectedView == 1 || _selectedView == 2)) {
-          previewVectores.add(parsedV1[1]!);
-          previewColores.add(const Color(0xFF43A047));
-          previewEtiquetas.add('V1 ($tag2 - Cruz)');
-          previewEsDiscontinuo.add(false);
-
-          if (parsedV0.length > 1 && parsedV0[1] != null) {
-            final v0 = parsedV0[1]!;
-            final v1 = parsedV1[1]!;
-            final deltaV21 = v1 - v0;
-
-            if (_mostrarTriangulo) {
-              previewConectores.add(VectorConector(
-                origen: v0,
-                destino: v1,
-                color: const Color(0xFF43A047),
-                etiqueta: 'ΔV21 ($tag2)',
-                esDiscontinuo: true,
-              ));
-            }
-
-            if (_mostrarTrasladado) {
-              previewVectores.add(deltaV21);
-              previewColores.add(const Color(0xFF66BB6A));
-              previewEtiquetas.add('ΔV21 Trasl ($tag2)');
-              previewEsDiscontinuo.add(true);
-            }
+          // Vector Trasladado al Origen (0,0)
+          if (_mostrarTrasladado) {
+            previewVectores.add(deltaV2);
+            previewColores.add(colorV2.withAlpha(220));
+            previewEtiquetas.add('ΔV2 Trasl ($tag)');
+            previewEsDiscontinuo.add(true);
           }
         }
       }
@@ -486,7 +384,7 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Análisis Vectorial Polar (${is2Planos ? "2 Planos" : "1 Plano"}):\nVisualice el triángulo vectorial de balanceo (punta de V0 a punta de V1) y su traslación paralela al origen para leer la respuesta real.',
+                          'Análisis Vectorial Polar (${is2Planos ? "2 Planos" : "1 Plano"}):\nTodos los canales iniciales (1H, 2H) se grafican desde el origen (0,0). Puede alternar entre el triángulo de balanceo y el vector trasladado.',
                           style: TextStyle(fontSize: 13, color: Colors.blueGrey.shade900),
                         ),
                       ),
@@ -496,19 +394,22 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
               ),
               const SizedBox(height: 16),
 
-              // SECCIÓN 1: V0
+              // SECCIÓN 1: V0 (VIBRACIÓN INICIAL EN TODOS LOS CANALES)
               _buildSectionCard(
                 title: '1. Vibración Inicial (V0 - Sin Masa)',
                 icon: Icons.vibration,
                 children: List.generate(_numCanales, (i) {
-                  final tag = provider.config?.canales[i].tag ?? (i == 0 ? '1H' : '2H');
+                  final tag = channelTags[i];
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
                     child: Row(
                       children: [
                         Expanded(
                           flex: 2,
-                          child: Text(tag, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          child: Text(
+                            tag,
+                            style: TextStyle(fontWeight: FontWeight.bold, color: _colorsV0[i % _colorsV0.length]),
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -577,7 +478,7 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
                   const Text('Vibración Resultante P1 (V1):', style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   ...List.generate(_numCanales, (i) {
-                    final tag = provider.config?.canales[i].tag ?? (i == 0 ? '1H' : '2H');
+                    final tag = channelTags[i];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
                       child: Row(
@@ -585,8 +486,8 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
                           Expanded(
                             flex: 2,
                             child: Text(
-                              i == 0 ? 'V1 ($tag - Directo)' : 'V1 ($tag - Cruzado)',
-                              style: const TextStyle(fontWeight: FontWeight.w500),
+                              is2Planos ? (i == 0 ? 'V1 ($tag - Directo)' : 'V1 ($tag - Cruzado)') : 'V1 ($tag)',
+                              style: TextStyle(fontWeight: FontWeight.w500, color: _colorsV1[i % _colorsV1.length]),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -658,7 +559,7 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
                     const Text('Vibración Resultante P2 (V2):', style: TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
                     ...List.generate(_numCanales, (i) {
-                      final tag = provider.config?.canales[i].tag ?? (i == 0 ? '1H' : '2H');
+                      final tag = channelTags[i];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Row(
@@ -667,7 +568,7 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
                               flex: 2,
                               child: Text(
                                 i == 1 ? 'V2 ($tag - Directo)' : 'V2 ($tag - Cruzado)',
-                                style: const TextStyle(fontWeight: FontWeight.w500),
+                                style: TextStyle(fontWeight: FontWeight.w500, color: _colorsV2[i % _colorsV2.length]),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -718,31 +619,33 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
                             'Diagrama Vectorial Polar',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
-                          if (is2Planos)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.blueGrey.shade100,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                _selectedView == 0
-                                    ? 'Plano 1 ($tag1)'
-                                    : _selectedView == 1
-                                        ? 'Plano 2 ($tag2)'
-                                        : 'Global (Ambos)',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey.shade900),
-                              ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.blueGrey.shade100,
+                              borderRadius: BorderRadius.circular(12),
                             ),
+                            child: Text(
+                              _selectedView == 0
+                                  ? 'Global (Todos)'
+                                  : 'Solo ${channelTags[_selectedView - 1]}',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blueGrey.shade900),
+                            ),
+                          ),
                         ],
                       ),
-                      if (is2Planos) ...[
+                      if (_numCanales > 1) ...[
                         const SizedBox(height: 12),
                         SegmentedButton<int>(
                           segments: [
-                            ButtonSegment(value: 0, label: Text('Plano 1 ($tag1)'), icon: const Icon(Icons.looks_one)),
-                            ButtonSegment(value: 1, label: Text('Plano 2 ($tag2)'), icon: const Icon(Icons.looks_two)),
-                            ButtonSegment(value: 2, label: const Text('Global'), icon: const Icon(Icons.hub)),
+                            const ButtonSegment(value: 0, label: Text('Global (Todos)'), icon: Icon(Icons.hub)),
+                            ...List.generate(_numCanales, (i) {
+                              return ButtonSegment(
+                                value: i + 1,
+                                label: Text('Solo ${channelTags[i]}'),
+                                icon: Icon(i == 0 ? Icons.looks_one : Icons.looks_two),
+                              );
+                            }),
                           ],
                           selected: {_selectedView},
                           onSelectionChanged: (newSelection) {
@@ -798,8 +701,7 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
                 unidadVib: unidadVib,
                 unidadPeso: unidadPeso,
                 is2Planos: is2Planos,
-                tag1: tag1,
-                tag2: tag2,
+                channelTags: channelTags,
               ),
 
               const SizedBox(height: 24),
@@ -856,8 +758,7 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
     required String unidadVib,
     required String unidadPeso,
     required bool is2Planos,
-    required String tag1,
-    required String tag2,
+    required List<String> channelTags,
   }) {
     List<Widget> auxRows = [];
 
@@ -893,226 +794,113 @@ class _GraficadorLecturasScreenState extends State<GraficadorLecturasScreen> {
       return null;
     });
 
-    if (!is2Planos) {
-      // 1 PLANO
-      if (parsedV0.isNotEmpty && parsedV0[0] != null && parsedV1.isNotEmpty && parsedV1[0] != null) {
-        final v0 = parsedV0[0]!;
-        final v1 = parsedV1[0]!;
-        final deltaV = v1 - v0;
-        final deltaTheta = (v1.anguloGrados - v0.anguloGrados) % 360;
-        final deltaThetaNorm = deltaTheta > 180 ? deltaTheta - 360 : deltaTheta;
+    for (int i = 0; i < _numCanales; i++) {
+      final tag = channelTags[i];
+      if (parsedV0[i] == null) continue;
+      final v0 = parsedV0[i]!;
 
-        auxRows.add(
+      List<Widget> channelWidgets = [];
+
+      // Respuesta Prueba 1 (V1)
+      if (parsedV1[i] != null) {
+        final v1 = parsedV1[i]!;
+        final deltaV1 = v1 - v0;
+        final dTheta1 = (v1.anguloGrados - v0.anguloGrados) % 360;
+        final dTheta1Norm = dTheta1 > 180 ? dTheta1 - 360 : dTheta1;
+
+        channelWidgets.add(
           Container(
-            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.blueGrey.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blueGrey.shade300),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.cyan.shade300),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Lectura de Vectores y Triángulo de Balanceo ($tag1):',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.blueGrey),
-                ),
-                const SizedBox(height: 8),
-                Text('• Vector Inicial V0: ${v0.modulo.toStringAsFixed(2)} $unidadVib @ ${v0.anguloGrados.toStringAsFixed(1)}°'),
-                Text('• Vector Resultante V1: ${v1.modulo.toStringAsFixed(2)} $unidadVib @ ${v1.anguloGrados.toStringAsFixed(1)}°'),
-                const Divider(height: 16),
-                Text(
-                  '• Vector Efecto Neto (ΔV = V1 - V0 trasladado): ${deltaV.modulo.toStringAsFixed(2)} $unidadVib @ ${deltaV.anguloGrados.toStringAsFixed(1)}°',
+                  is2Planos && i > 0
+                      ? 'Respuesta Cruzada (Masa Mt1 en Plano 1):'
+                      : 'Respuesta Directa (Masa Mt1 en Plano 1):',
                   style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF00838F)),
                 ),
-                Text('• Desfase Angular (Δθ = θ1 - θ0): ${deltaThetaNorm.toStringAsFixed(1)}° (${deltaThetaNorm >= 0 ? "Adelanto" : "Atraso"})'),
+                Text('  - V1 (Resultante): ${v1.modulo.toStringAsFixed(2)} $unidadVib @ ${v1.anguloGrados.toStringAsFixed(1)}°'),
+                Text('  - ΔV1 (Efecto neto trasladado): ${deltaV1.modulo.toStringAsFixed(2)} $unidadVib @ ${deltaV1.anguloGrados.toStringAsFixed(1)}°'),
+                Text('  - Desfase Δθ1: ${dTheta1Norm.toStringAsFixed(1)}° (${dTheta1Norm >= 0 ? "Adelanto" : "Atraso"})'),
                 if (mt1Masa != null && mt1Masa > 0)
-                  Text(
-                    '• Sensibilidad Dinámica (|ΔV| / |Mt|): ${(deltaV.modulo / mt1Masa).toStringAsFixed(3)} $unidadVib/$unidadPeso',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
+                  Text('  - Sensibilidad: ${(deltaV1.modulo / mt1Masa).toStringAsFixed(3)} $unidadVib/$unidadPeso'),
               ],
             ),
           ),
         );
       }
-    } else {
-      // 2 PLANOS
-      // BLOQUE PLANO 1 (SENSOR 1 / ej 1H)
-      if (parsedV0.isNotEmpty && parsedV0[0] != null) {
-        final v01 = parsedV0[0]!;
-        List<Widget> p1Widgets = [];
 
-        if (parsedV1.isNotEmpty && parsedV1[0] != null) {
-          final v11 = parsedV1[0]!;
-          final deltaV11 = v11 - v01;
-          final dTheta11 = (v11.anguloGrados - v01.anguloGrados) % 360;
-          final dTheta11Norm = dTheta11 > 180 ? dTheta11 - 360 : dTheta11;
+      // Respuesta Prueba 2 (V2 - si 2 planos)
+      if (is2Planos && parsedV2[i] != null) {
+        final v2 = parsedV2[i]!;
+        final deltaV2 = v2 - v0;
+        final dTheta2 = (v2.anguloGrados - v0.anguloGrados) % 360;
+        final dTheta2Norm = dTheta2 > 180 ? dTheta2 - 360 : dTheta2;
 
-          p1Widgets.add(
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.cyan.shade300),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Respuesta Directa (Masa Mt1 en Plano 1):', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF00838F))),
-                  Text('  - V11 (Resultante): ${v11.modulo.toStringAsFixed(2)} $unidadVib @ ${v11.anguloGrados.toStringAsFixed(1)}°'),
-                  Text('  - ΔV11 (Efecto neto trasladado): ${deltaV11.modulo.toStringAsFixed(2)} $unidadVib @ ${deltaV11.anguloGrados.toStringAsFixed(1)}°'),
-                  Text('  - Desfase Δθ11: ${dTheta11Norm.toStringAsFixed(1)}° (${dTheta11Norm >= 0 ? "Adelanto" : "Atraso"})'),
-                  if (mt1Masa != null && mt1Masa > 0)
-                    Text('  - Sensibilidad Directa: ${(deltaV11.modulo / mt1Masa).toStringAsFixed(3)} $unidadVib/$unidadPeso'),
-                ],
-              ),
+        channelWidgets.add(
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.orange.shade300),
             ),
-          );
-        }
-
-        if (parsedV2.isNotEmpty && parsedV2[0] != null) {
-          final v12 = parsedV2[0]!;
-          final deltaV12 = v12 - v01;
-          final dTheta12 = (v12.anguloGrados - v01.anguloGrados) % 360;
-          final dTheta12Norm = dTheta12 > 180 ? dTheta12 - 360 : dTheta12;
-
-          p1Widgets.add(
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.purple.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Respuesta Cruzada / Cross-Talk (Masa Mt2 en Plano 2):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple.shade800)),
-                  Text('  - V12 (Resultante cruzada): ${v12.modulo.toStringAsFixed(2)} $unidadVib @ ${v12.anguloGrados.toStringAsFixed(1)}°'),
-                  Text('  - ΔV12 (Efecto cruzado trasladado): ${deltaV12.modulo.toStringAsFixed(2)} $unidadVib @ ${deltaV12.anguloGrados.toStringAsFixed(1)}°'),
-                  Text('  - Desfase Cruzado Δθ12: ${dTheta12Norm.toStringAsFixed(1)}° (${dTheta12Norm >= 0 ? "Adelanto" : "Atraso"})'),
-                  if (mt2Masa != null && mt2Masa > 0)
-                    Text('  - Sensibilidad Cruzada: ${(deltaV12.modulo / mt2Masa).toStringAsFixed(3)} $unidadVib/$unidadPeso'),
-                ],
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  i == 0
+                      ? 'Respuesta Cruzada (Masa Mt2 en Plano 2):'
+                      : 'Respuesta Directa (Masa Mt2 en Plano 2):',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE65100)),
+                ),
+                Text('  - V2 (Resultante): ${v2.modulo.toStringAsFixed(2)} $unidadVib @ ${v2.anguloGrados.toStringAsFixed(1)}°'),
+                Text('  - ΔV2 (Efecto neto trasladado): ${deltaV2.modulo.toStringAsFixed(2)} $unidadVib @ ${deltaV2.anguloGrados.toStringAsFixed(1)}°'),
+                Text('  - Desfase Δθ2: ${dTheta2Norm.toStringAsFixed(1)}° (${dTheta2Norm >= 0 ? "Adelanto" : "Atraso"})'),
+                if (mt2Masa != null && mt2Masa > 0)
+                  Text('  - Sensibilidad: ${(deltaV2.modulo / mt2Masa).toStringAsFixed(3)} $unidadVib/$unidadPeso'),
+              ],
             ),
-          );
-        }
-
-        if (p1Widgets.isNotEmpty) {
-          auxRows.add(
-            Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.blueGrey.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blueGrey.shade300),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Plano 1 ($tag1) - V01: ${v01.modulo.toStringAsFixed(2)} $unidadVib @ ${v01.anguloGrados.toStringAsFixed(1)}°',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blueGrey)),
-                  const SizedBox(height: 8),
-                  ...p1Widgets,
-                ],
-              ),
-            ),
-          );
-        }
+          ),
+        );
       }
 
-      // BLOQUE PLANO 2 (SENSOR 2 / ej 2H)
-      if (parsedV0.length > 1 && parsedV0[1] != null) {
-        final v02 = parsedV0[1]!;
-        List<Widget> p2Widgets = [];
-
-        if (parsedV2.length > 1 && parsedV2[1] != null) {
-          final v22 = parsedV2[1]!;
-          final deltaV22 = v22 - v02;
-          final dTheta22 = (v22.anguloGrados - v02.anguloGrados) % 360;
-          final dTheta22Norm = dTheta22 > 180 ? dTheta22 - 360 : dTheta22;
-
-          p2Widgets.add(
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.orange.shade300),
+      auxRows.add(
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: i == 0 ? Colors.blue.shade50 : Colors.red.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: i == 0 ? Colors.blue.shade300 : Colors.red.shade300),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Canal $tag - V0: ${v0.modulo.toStringAsFixed(2)} $unidadVib @ ${v0.anguloGrados.toStringAsFixed(1)}°',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: i == 0 ? Colors.blue.shade900 : Colors.red.shade900,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Respuesta Directa (Masa Mt2 en Plano 2):', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE65100))),
-                  Text('  - V22 (Resultante): ${v22.modulo.toStringAsFixed(2)} $unidadVib @ ${v22.anguloGrados.toStringAsFixed(1)}°'),
-                  Text('  - ΔV22 (Efecto neto trasladado): ${deltaV22.modulo.toStringAsFixed(2)} $unidadVib @ ${deltaV22.anguloGrados.toStringAsFixed(1)}°'),
-                  Text('  - Desfase Δθ22: ${dTheta22Norm.toStringAsFixed(1)}° (${dTheta22Norm >= 0 ? "Adelanto" : "Atraso"})'),
-                  if (mt2Masa != null && mt2Masa > 0)
-                    Text('  - Sensibilidad Directa: ${(deltaV22.modulo / mt2Masa).toStringAsFixed(3)} $unidadVib/$unidadPeso'),
-                ],
-              ),
-            ),
-          );
-        }
-
-        if (parsedV1.length > 1 && parsedV1[1] != null) {
-          final v21 = parsedV1[1]!;
-          final deltaV21 = v21 - v02;
-          final dTheta21 = (v21.anguloGrados - v02.anguloGrados) % 360;
-          final dTheta21Norm = dTheta21 > 180 ? dTheta21 - 360 : dTheta21;
-
-          p2Widgets.add(
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Respuesta Cruzada / Cross-Talk (Masa Mt1 en Plano 1):', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade800)),
-                  Text('  - V21 (Resultante cruzada): ${v21.modulo.toStringAsFixed(2)} $unidadVib @ ${v21.anguloGrados.toStringAsFixed(1)}°'),
-                  Text('  - ΔV21 (Efecto cruzado trasladado): ${deltaV21.modulo.toStringAsFixed(2)} $unidadVib @ ${deltaV21.anguloGrados.toStringAsFixed(1)}°'),
-                  Text('  - Desfase Cruzado Δθ21: ${dTheta21Norm.toStringAsFixed(1)}° (${dTheta21Norm >= 0 ? "Adelanto" : "Atraso"})'),
-                  if (mt1Masa != null && mt1Masa > 0)
-                    Text('  - Sensibilidad Cruzada: ${(deltaV21.modulo / mt1Masa).toStringAsFixed(3)} $unidadVib/$unidadPeso'),
-                ],
-              ),
-            ),
-          );
-        }
-
-        if (p2Widgets.isNotEmpty) {
-          auxRows.add(
-            Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.purple.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.purple.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Plano 2 ($tag2) - V02: ${v02.modulo.toStringAsFixed(2)} $unidadVib @ ${v02.anguloGrados.toStringAsFixed(1)}°',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.purple.shade900)),
-                  const SizedBox(height: 8),
-                  ...p2Widgets,
-                ],
-              ),
-            ),
-          );
-        }
-      }
+              if (channelWidgets.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ...channelWidgets,
+              ],
+            ],
+          ),
+        ),
+      );
     }
 
     return Card(
